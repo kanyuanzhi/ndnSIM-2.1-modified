@@ -61,6 +61,20 @@ Forwarder::~Forwarder()
 void
 Forwarder::onIncomingInterest(Face& inFace, const Interest& interest)
 {
+  // add by kan 20190324 20190330
+  //Interest* interest = const_cast<Interest*>(&interest);
+  if (interest.getValidationFlag() == 1){
+    std::string PITListStr = interest.getPITList();
+    PITListStr += " " + std::to_string(inFace.getId());
+    const_cast<Interest&>(interest).setPITList(PITListStr);
+  }
+
+  int node = ns3::Simulator::GetContext();
+  std::cout<<"node "<<node<<" get interest with PITList value "<<interest.getPITList()<<std::endl;
+  std::cout<<"node "<<node<<" "<<inFace.getId()<<std::endl;
+  //std::cout<<inFace.getId()<<std::endl;
+  // end add
+  
   // receive Interest
   NFD_LOG_DEBUG("onIncomingInterest face=" << inFace.getId() <<
                 " interest=" << interest.getName());

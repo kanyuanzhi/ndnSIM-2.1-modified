@@ -435,11 +435,52 @@ public: // EqualityComparable concept
     return !(*this == other);
   }
 
+// add by kan 20180324
+public:
+  const
+  std::string&
+  getPITList() const
+  {
+    return PITList;
+  }
+
+  Interest&
+  setPITList(const std::string& str)
+  {
+    PITList = str;
+    m_wire.reset();
+    return *this;
+  }
+// end add
+
+// add by kan 20180330
+public:
+  const
+  int&
+  getValidationFlag() const
+  {
+    return ValidationFlag;
+  }
+
+  Interest&
+  setValidationFlag(const int& i)
+  {
+    ValidationFlag = i;
+    m_wire.reset();
+    return *this;
+  }
+// end add
+
 private:
   Name m_name;
   Selectors m_selectors;
   mutable Block m_nonce;
   time::milliseconds m_interestLifetime;
+  
+  // add by kan
+  std::string PITList;
+  int ValidationFlag; //0表示普通的兴趣包，1表示有有效性要求的兴趣包
+  // end add
 
   mutable Block m_link;
   size_t m_selectedDelegationIndex;

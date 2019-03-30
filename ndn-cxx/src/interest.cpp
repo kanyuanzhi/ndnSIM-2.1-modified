@@ -228,6 +228,14 @@ Interest::wireEncode(EncodingImpl<TAG>& encoder) const
 
   // (reverse encoding)
 
+  // add by kan 20180324
+  totalLength += prependStringBlock(encoder, tlv::PITList, getPITList());
+  // end add
+
+  // add by kan 20180330
+  totalLength += prependNonNegativeIntegerBlock(encoder, tlv::ValidationFlag, getValidationFlag());
+  // end add
+
   if (hasLink()) {
     if (hasSelectedDelegation()) {
       totalLength += prependNonNegativeIntegerBlock(encoder,
@@ -355,6 +363,20 @@ Interest::wireDecode(const Block& wire)
       BOOST_THROW_EXCEPTION(Error("Invalid selected delegation index when decoding Interest"));
     }
   }
+
+  // add by kan 20180324
+  val = m_wire.find(tlv::PITList);
+  if (val != m_wire.elements_end()) {
+    PITList = readString(*val);
+  }
+  // end add
+
+  // add by kan 20180330
+  val = m_wire.find(tlv::ValidationFlag);
+  if (val != m_wire.elements_end()) {
+    ValidationFlag = readNonNegativeInteger(*val);
+  }
+  // end add
 }
 
 bool
