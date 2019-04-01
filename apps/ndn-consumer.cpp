@@ -192,6 +192,10 @@ Consumer::SendPacket()
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
   interest->setInterestLifetime(interestLifeTime);
 
+  // add by kan 20190331
+  interest->setValidationFlag(0);
+  // end add
+
   // NS_LOG_INFO ("Requesting Interest: \n" << *interest);
   NS_LOG_INFO("> Interest for " << seq);
 

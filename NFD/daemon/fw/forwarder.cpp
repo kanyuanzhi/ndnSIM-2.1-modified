@@ -69,9 +69,9 @@ Forwarder::onIncomingInterest(Face& inFace, const Interest& interest)
     const_cast<Interest&>(interest).setPITList(PITListStr);
   }
 
-  int node = ns3::Simulator::GetContext();
-  std::cout<<"node "<<node<<" get interest with PITList value "<<interest.getPITList()<<std::endl;
-  std::cout<<"node "<<node<<" "<<inFace.getId()<<std::endl;
+  // int node = ns3::Simulator::GetContext();
+  // std::cout<<"node "<<node<<" get interest with PITList value "<<interest.getPITList()<<std::endl;
+  // std::cout<<"node "<<node<<" "<<inFace.getId()<<std::endl;
   //std::cout<<inFace.getId()<<std::endl;
   // end add
   

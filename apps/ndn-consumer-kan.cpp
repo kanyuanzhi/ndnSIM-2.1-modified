@@ -192,11 +192,11 @@ ConsumerKan::SendPacket()
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
   interest->setInterestLifetime(interestLifeTime);
 
-  // add by kan 20180324
+  // add by kan 20190324
   interest->setPITList("PITList:");
   // end add
 
-  // add by kan 20180330
+  // add by kan 20190330
   interest->setValidationFlag(1);
   // end add
 
