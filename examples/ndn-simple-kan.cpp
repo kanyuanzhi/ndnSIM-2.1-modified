@@ -117,7 +117,7 @@ int main( int argc, char *argv[] ) {
   producerHelper.SetAttribute( "PayloadSize", StringValue( "1024" ) );
   producerHelper.Install( nodes.Get( 4 ) ); // last node
 
-  Simulator::Stop( Seconds( 12.0 ) );
+  Simulator::Stop( Seconds( 30.0 ) );
 
   Simulator::Run();
   Simulator::Destroy();

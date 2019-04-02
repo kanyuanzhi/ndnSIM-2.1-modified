@@ -88,14 +88,15 @@ enum {
   LinkDelegation = 31,
   SelectedDelegation = 32,
 
-  // add by kan 20180324
+  // add by kan 20190324
   PITList = 33,
   // end add
 
-  // add by kan 20180330
+  // add by kan 20190330 20190401
   ValidationFlag = 34,
   Expiration = 35,
   PITListBack = 36,
+  ValidationDataFlag = 37,
   // end add
 
   AppPrivateBlock1 = 128,

@@ -50,11 +50,12 @@ TypeId ProducerKan::GetTypeId( void ) {
                          StringValue( "/" ),
                          MakeNameAccessor( &ProducerKan::m_prefix ),
                          MakeNameChecker() )
-          .AddAttribute(
-              "Postfix", "Postfix that is added to the output data (e.g., "
+          .AddAttribute( "Postfix",
+                         "Postfix that is added to the output data (e.g., "
                          "for adding producer-uniqueness)",
-              StringValue( "/" ), MakeNameAccessor( &ProducerKan::m_postfix ),
-              MakeNameChecker() )
+                         StringValue( "/" ),
+                         MakeNameAccessor( &ProducerKan::m_postfix ),
+                         MakeNameChecker() )
           .AddAttribute(
               "PayloadSize", "Virtual payload size for Content packets",
               UintegerValue( 1024 ),
@@ -71,11 +72,12 @@ TypeId ProducerKan::GetTypeId( void ) {
                          UintegerValue( 0 ),
                          MakeUintegerAccessor( &ProducerKan::m_signature ),
                          MakeUintegerChecker<uint32_t>() )
-          .AddAttribute(
-              "KeyLocator", "Name to be used for key locator.  If root, then "
-                            "key locator is not used",
-              NameValue(), MakeNameAccessor( &ProducerKan::m_keyLocator ),
-              MakeNameChecker() );
+          .AddAttribute( "KeyLocator",
+                         "Name to be used for key locator.  If root, then "
+                         "key locator is not used",
+                         NameValue(),
+                         MakeNameAccessor( &ProducerKan::m_keyLocator ),
+                         MakeNameChecker() );
   return tid;
 }
 
@@ -103,25 +105,60 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
   if ( !m_active ) return;
 
   // add by kan 20190331
+  // 把具有有效性要求的内容存入PITListStore中，设置过期时间，到期内容删除前再发布一次，过期字段置为1
   if ( interest->getValidationFlag() == 1 ) {
     struct PITListEntry pe;
     pe.name    = interest->getName();
     pe.PITList = interest->getPITList();
     int tnow   = (int) ns3::Simulator::Now().GetSeconds();
     pe.ttl     = tnow;
-    std::cout << pe.name << "=====" << pe.PITList << "====" << pe.ttl
-              << std::endl;
+    // std::cout << pe.name << "=====" << pe.PITList << "====" << pe.ttl
+    //           << std::endl;
+    //std::cout << PITListStore.size() << std::endl;
     if ( !PITListStore.empty() ) {
       std::list<PITListEntry>::iterator it;
       std::list<PITListEntry>::iterator next = PITListStore.end();
       for ( it = PITListStore.begin(); it != PITListStore.end(); it = next ) {
         next = ++it;
         --it;
-        if ( tnow - it->ttl > 5 ) {
+        if ( tnow - it->ttl > 10 ) {
+          Name dataName( it->name );
+          auto data = make_shared<Data>();
+          data->setName( dataName );
+          data->setFreshnessPeriod(
+              ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
+
+          data->setContent(
+              make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
+
+          // 设置有有效性要求的数据包字段
+          data->setValidationDataFlag( 1 );
+          data->setExpiration( 1 );
+          data->setPITListBack( it->PITList );
+
+          Signature     signature;
+          SignatureInfo signatureInfo(
+              static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
+
+          if ( m_keyLocator.size() > 0 ) {
+            signatureInfo.setKeyLocator( m_keyLocator );
+          }
+
+          signature.setInfo( signatureInfo );
+          signature.setValue(::ndn::nonNegativeIntegerBlock(
+              ::ndn::tlv::SignatureValue, m_signature ) );
+
+          data->setSignature( signature );
+          data->wireEncode();
+
+          m_transmittedDatas( data, this, m_face );
+          m_face->onReceiveData( *data );
+
           PITListStore.erase( it );
         }
         if ( it->PITList == interest->getPITList() &&
              it->name == interest->getName() ) {
+          //std::cout << "REPEAT!!!!!!!!!" << std::endl;
           PITListStore.erase( it );
           // struct PITListEntry peTemp;
           // peTemp.name = it->name;
@@ -142,10 +179,10 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
   if ( (int) tnow % frequency != 0 ) {
     published = false;
   }
-  std::cout << "false " << tnow << std::endl;
+  // std::cout << "false " << tnow << std::endl;
   if ( (int) tnow % frequency == 0 && (int) tnow != 0 ) {
     if ( !published ) {
-      std::cout << "true " << tnow << std::endl;
+      // std::cout << "true " << tnow << std::endl;
       published = true;
       for ( std::list<PITListEntry>::iterator it = PITListStore.begin();
             it != PITListStore.end(); it++ ) {
@@ -156,6 +193,11 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
             ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
 
         data->setContent( make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
+
+        // 设置有有效性要求的数据包字段
+        data->setValidationDataFlag( 1 );
+        data->setExpiration( 0 );
+        data->setPITListBack( it->PITList );
 
         Signature     signature;
         SignatureInfo signatureInfo(
@@ -203,6 +245,17 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
                                                     m_signature ) );
 
   data->setSignature( signature );
+
+  if ( interest->getValidationFlag() == 1 ) {
+    // 设置有有效性要求的数据包字段
+    data->setValidationDataFlag( 1 );
+    data->setExpiration( 0 );
+    data->setPITListBack( interest->getPITList() );
+  } else {
+    data->setValidationDataFlag( 0 );
+    data->setExpiration( 0 );
+    data->setPITListBack( "" );
+  }
 
   NS_LOG_INFO( "node(" << GetNode()->GetId()
                        << ") responding with Data: " << data->getName() );

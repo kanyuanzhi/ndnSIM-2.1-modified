@@ -328,6 +328,56 @@ private:
 
   nfd::LocalControlHeader m_localControlHeader;
   friend class nfd::LocalControlHeader;
+
+  // add by kan 20190401
+  int ValidationDataFlag; // 数据包有效性标志，0表示没有有效性要求，1表示有有效性要求
+  std::string PITListBack;
+  int Expiration; // 过期标志，0表示没有过期，1表示过期
+
+public:
+  const 
+  int&
+  getValidationDataFlag() const{
+    return ValidationDataFlag;
+  }
+
+  Data&
+  setValidationDataFlag(const int& i){
+    m_wire.reset();
+    m_fullName.clear();
+    ValidationDataFlag = i;
+    return *this;
+  }
+
+  const 
+  int&
+  getExpiration() const{
+    return Expiration;
+  }
+
+  Data&
+  setExpiration(const int& i){
+    m_wire.reset();
+    m_fullName.clear();
+    Expiration = i;
+    return *this;
+  }
+
+  const 
+  std::string&
+  getPITListBack() const{
+    return PITListBack;
+  }
+
+  Data&
+  setPITListBack(const std::string& str){
+    m_wire.reset();
+    m_fullName.clear();
+    PITListBack = str;
+    return *this;
+  }
+  // end add
+
 };
 
 std::ostream&

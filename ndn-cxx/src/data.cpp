@@ -61,6 +61,14 @@ Data::wireEncode(EncodingImpl<TAG>& encoder, bool unsignedPortion/* = false*/) c
 
   // (reverse encoding)
 
+  // add by kan 20190401
+  totalLength += prependStringBlock(encoder, tlv::PITListBack, getPITListBack());
+
+  totalLength += prependNonNegativeIntegerBlock(encoder, tlv::ValidationDataFlag, getValidationDataFlag());
+
+  totalLength += prependNonNegativeIntegerBlock(encoder, tlv::Expiration, getExpiration());
+  // end add
+
   if (!unsignedPortion && !m_signature)
     {
       BOOST_THROW_EXCEPTION(Error("Requested wire format, but data packet has not been signed yet"));
@@ -164,6 +172,23 @@ Data::wireDecode(const Block& wire)
   Block::element_const_iterator val = m_wire.find(tlv::SignatureValue);
   if (val != m_wire.elements_end())
     m_signature.setValue(*val);
+
+  // add by kan 20190401
+  val = m_wire.find(tlv::PITListBack);
+  if (val != m_wire.elements_end()) {
+    PITListBack = readString(*val);
+  }
+
+  val = m_wire.find(tlv::ValidationDataFlag);
+  if (val != m_wire.elements_end()) {
+    ValidationDataFlag = readNonNegativeInteger(*val);
+  }
+
+  val = m_wire.find(tlv::Expiration);
+  if (val != m_wire.elements_end()) {
+    Expiration = readNonNegativeInteger(*val);
+  }
+  // end add
 }
 
 Data&

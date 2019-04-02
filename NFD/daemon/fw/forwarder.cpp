@@ -300,6 +300,10 @@ Forwarder::onInterestFinalize(shared_ptr<pit::Entry> pitEntry, bool isSatisfied,
 void
 Forwarder::onIncomingData(Face& inFace, const Data& data)
 {
+  int node = ns3::Simulator::GetContext();
+  std::cout<<"node "<<node<<" get data with value "<<data.getPITListBack()<<" " <<data.getValidationDataFlag()<<" "<<data.getExpiration()<<std::endl;
+
+
   // receive Data
   NFD_LOG_DEBUG("onIncomingData face=" << inFace.getId() << " data=" << data.getName());
   const_cast<Data&>(data).setIncomingFaceId(inFace.getId());

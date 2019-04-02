@@ -228,11 +228,11 @@ Interest::wireEncode(EncodingImpl<TAG>& encoder) const
 
   // (reverse encoding)
 
-  // add by kan 20180324
+  // add by kan 20190324
   totalLength += prependStringBlock(encoder, tlv::PITList, getPITList());
   // end add
 
-  // add by kan 20180330
+  // add by kan 20190330
   totalLength += prependNonNegativeIntegerBlock(encoder, tlv::ValidationFlag, getValidationFlag());
   // end add
 
@@ -364,14 +364,14 @@ Interest::wireDecode(const Block& wire)
     }
   }
 
-  // add by kan 20180324
+  // add by kan 20190324
   val = m_wire.find(tlv::PITList);
   if (val != m_wire.elements_end()) {
     PITList = readString(*val);
   }
   // end add
 
-  // add by kan 20180330
+  // add by kan 20190330
   val = m_wire.find(tlv::ValidationFlag);
   if (val != m_wire.elements_end()) {
     ValidationFlag = readNonNegativeInteger(*val);
