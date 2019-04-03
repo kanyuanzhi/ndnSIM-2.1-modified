@@ -114,7 +114,7 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
     pe.ttl     = tnow;
     // std::cout << pe.name << "=====" << pe.PITList << "====" << pe.ttl
     //           << std::endl;
-    //std::cout << PITListStore.size() << std::endl;
+    // std::cout << PITListStore.size() << std::endl;
     if ( !PITListStore.empty() ) {
       std::list<PITListEntry>::iterator it;
       std::list<PITListEntry>::iterator next = PITListStore.end();
@@ -158,7 +158,7 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
         }
         if ( it->PITList == interest->getPITList() &&
              it->name == interest->getName() ) {
-          //std::cout << "REPEAT!!!!!!!!!" << std::endl;
+          // std::cout << "REPEAT!!!!!!!!!" << std::endl;
           PITListStore.erase( it );
           // struct PITListEntry peTemp;
           // peTemp.name = it->name;
@@ -256,6 +256,9 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
     data->setExpiration( 0 );
     data->setPITListBack( "" );
   }
+  // data->setValidationDataFlag( 0 );
+  // data->setExpiration( 0 );
+  // data->setPITListBack( "" );
 
   NS_LOG_INFO( "node(" << GetNode()->GetId()
                        << ") responding with Data: " << data->getName() );

@@ -50,74 +50,98 @@ namespace ns3 {
 
 int main( int argc, char *argv[] ) {
   // setting default parameters for PointToPoint links and channels
-  Config::SetDefault( "ns3::PointToPointNetDevice::DataRate",
-                      StringValue( "1Mbps" ) );
-  Config::SetDefault( "ns3::PointToPointChannel::Delay",
-                      StringValue( "10ms" ) );
-  Config::SetDefault( "ns3::DropTailQueue::MaxPackets", StringValue( "20" ) );
+  // Config::SetDefault( "ns3::PointToPointNetDevice::DataRate",
+  //                     StringValue( "1Mbps" ) );
+  // Config::SetDefault( "ns3::PointToPointChannel::Delay",
+  //                     StringValue( "10ms" ) );
+  // Config::SetDefault( "ns3::DropTailQueue::MaxPackets", StringValue( "20" )
+  // );
 
   // Read optional command-line parameters (e.g., enable visualizer with ./waf
   // --run=<> --visualize
   CommandLine cmd;
   cmd.Parse( argc, argv );
 
+  AnnotatedTopologyReader topologyReader( "", 1 );
+  topologyReader.SetFileName( "src/ndnSIM/examples/topologies/test-tree.txt" );
+  topologyReader.Read();
+
   // Creating nodes
-  NodeContainer nodes;
-  nodes.Create( 7 );
+  // NodeContainer nodes;
+  // nodes.Create( 7 );
 
   // Connecting nodes using two links
-  PointToPointHelper p2p;
-  p2p.Install( nodes.Get( 0 ), nodes.Get( 2 ) );
-  p2p.Install( nodes.Get( 1 ), nodes.Get( 2 ) );
-  p2p.Install( nodes.Get( 2 ), nodes.Get( 3 ) );
-  p2p.Install( nodes.Get( 3 ), nodes.Get( 4 ) );
-  p2p.Install( nodes.Get( 5 ), nodes.Get( 2 ) );
-  p2p.Install( nodes.Get( 6 ), nodes.Get( 3 ) );
+  // PointToPointHelper p2p;
+  // p2p.Install( nodes.Get( 0 ), nodes.Get( 2 ) );
+  // p2p.Install( nodes.Get( 1 ), nodes.Get( 2 ) );
+  // p2p.Install( nodes.Get( 2 ), nodes.Get( 3 ) );
+  // p2p.Install( nodes.Get( 3 ), nodes.Get( 4 ) );
+  // p2p.Install( nodes.Get( 5 ), nodes.Get( 2 ) );
+  // p2p.Install( nodes.Get( 6 ), nodes.Get( 3 ) );
 
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
-  ndnHelper.SetDefaultRoutes( true );
+  // ndnHelper.SetDefaultRoutes( true );
+  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Lru", "MaxSize", "100" );
+
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
   ndn::StrategyChoiceHelper::InstallAll( "/prefix",
-                                         "/localhost/nfd/strategy/multicast" );
-
+                                         "/localhost/nfd/strategy/best-route" );
+  ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
+  ndnGlobalRoutingHelper.InstallAll();
   // Installing applications
+  Ptr<Node>     producer = Names::Find<Node>( "root" );
+  NodeContainer consumerNodes;
+  consumerNodes.Add( Names::Find<Node>( "user1-1" ) );
+  consumerNodes.Add( Names::Find<Node>( "user1-2" ) );
+  consumerNodes.Add( Names::Find<Node>( "user1-3" ) );
+  consumerNodes.Add( Names::Find<Node>( "user2-1" ) );
+  consumerNodes.Add( Names::Find<Node>( "user2-2" ) );
 
   // Consumer0
-  ndn::AppHelper consumerHelper0( "ns3::ndn::ConsumerZipfMandelbrotKan" );
-  consumerHelper0.SetAttribute( "Frequency",
-                                StringValue( "10" ) ); // 10 interests a second
-  consumerHelper0.SetAttribute( "NumberOfContents", StringValue( "500" ) );
+  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrotKan" );
+  consumerHelper.SetAttribute( "Frequency",
+                               StringValue( "100" ) ); // 10 interests a second
+  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "100" ) );
   // Consumer will request /prefix/0, /prefix/1, ...
-  consumerHelper0.SetPrefix( "/prefix/c0" );
-  consumerHelper0.Install( nodes.Get( 0 ) ); // first node
+  // consumerHelper0.SetPrefix( "/prefix/c0" );
+  // consumerHelper0.Install( nodes.Get( 0 ) ); // first node
 
-  consumerHelper0.SetPrefix( "/prefix/c5" );
-  consumerHelper0.Install( nodes.Get( 5 ) );
+  // consumerHelper0.SetPrefix( "/prefix/c5" );
+  // consumerHelper0.Install( nodes.Get( 5 ) );
 
-  consumerHelper0.SetPrefix( "/prefix/c6" );
-  consumerHelper0.Install( nodes.Get( 6 ) );
-
+  // consumerHelper0.SetPrefix( "/prefix/c6" );
+  // consumerHelper0.Install( nodes.Get( 6 ) );
+  consumerHelper.SetPrefix( "/prefix" );
+  consumerHelper.Install( consumerNodes );
   // Consumer1
-  ndn::AppHelper consumerHelper1( "ns3::ndn::ConsumerZipfMandelbrot" );
+  // ndn::AppHelper consumerHelper1( "ns3::ndn::ConsumerZipfMandelbrot" );
 
-  // Consumer will request /prefix/0, /prefix/1, ...
-  consumerHelper1.SetPrefix( "/prefix/c1" );
-  consumerHelper1.SetAttribute( "Frequency",
-                                StringValue( "10" ) ); // 10 interests a second
-  consumerHelper0.SetAttribute( "NumberOfContents", StringValue( "100" ) );
-  consumerHelper1.Install( nodes.Get( 1 ) ); // first node
+  // // Consumer will request /prefix/0, /prefix/1, ...
+  // consumerHelper1.SetPrefix( "/prefix/c1" );
+  // consumerHelper1.SetAttribute( "Frequency",
+  //                               StringValue( "100" ) ); // 10 interests a
+  //                               second
+  // consumerHelper0.SetAttribute( "NumberOfContents", StringValue( "1000" ) );
+  // consumerHelper1.Install( nodes.Get( 1 ) ); // first node
 
   // Producer
   ndn::AppHelper producerHelper( "ns3::ndn::ProducerKan" );
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix( "/prefix" );
   producerHelper.SetAttribute( "PayloadSize", StringValue( "1024" ) );
-  producerHelper.Install( nodes.Get( 4 ) ); // last node
+  // producerHelper.Install( nodes.Get( 4 ) ); // last node
+  producerHelper.Install( producer );
+  ndnGlobalRoutingHelper.AddOrigins( "/prefix", producer );
+  ndn::GlobalRoutingHelper::CalculateRoutes();
 
-  Simulator::Stop( Seconds( 30.0 ) );
+  Simulator::Stop( Seconds( 20.0 ) );
+
+  ndn::L3RateTracer::InstallAll( "rate-trace.txt", Seconds( 1.0 ) );
+
+  ndn::CsTracer::InstallAll( "cs-trace.txt", Seconds( 1 ) );
 
   Simulator::Run();
   Simulator::Destroy();

@@ -70,6 +70,8 @@ main(int argc, char* argv[])
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   ndnHelper.SetDefaultRoutes(true);
+  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Lru" ,"MaxSize", "100");
+  //ndnHelper.setPolicy("nfd::cs::lru");
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
@@ -78,10 +80,11 @@ main(int argc, char* argv[])
   // Installing applications
 
   // Consumer
-  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
+  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerZipfMandelbrot");
   // Consumer will request /prefix/0, /prefix/1, ...
   consumerHelper.SetPrefix("/prefix");
-  consumerHelper.SetAttribute("Frequency", StringValue("10")); // 10 interests a second
+  consumerHelper.SetAttribute("Frequency", StringValue("100")); // 10 interests a second
+  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "1000" ) );
   consumerHelper.Install(nodes.Get(0));                        // first node
 
   // Producer
@@ -91,7 +94,8 @@ main(int argc, char* argv[])
   producerHelper.SetAttribute("PayloadSize", StringValue("1024"));
   producerHelper.Install(nodes.Get(2)); // last node
 
-  Simulator::Stop(Seconds(20.0));
+  Simulator::Stop(Seconds(50.0));
+  ndn::CsTracer::InstallAll("cs-trace.txt", Seconds(1));
 
   Simulator::Run();
   Simulator::Destroy();
