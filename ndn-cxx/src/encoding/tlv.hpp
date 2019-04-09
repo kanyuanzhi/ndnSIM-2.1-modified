@@ -93,10 +93,14 @@ enum {
   // end add
 
   // add by kan 20190330 20190401
-  ValidationFlag = 34,
-  Expiration = 35,
-  PITListBack = 36,
-  ValidationDataFlag = 37,
+  ValidationFlag = 34,  // 兴趣包中是否有有效性要求字段
+  Expiration = 35,  // 数据包中过期字段
+  PITListBack = 36, // 数据包中PITList
+  ValidationDataFlag = 37,  // 数据包中是否有有效性要求字段
+  // end add
+
+  // add by kan 20190409
+  ValidationPublishment = 38, // 用来区分请求返回类型的数据和主动发布的数据
   // end add
 
   AppPrivateBlock1 = 128,

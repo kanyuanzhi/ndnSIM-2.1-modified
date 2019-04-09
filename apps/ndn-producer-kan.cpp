@@ -32,6 +32,7 @@
 #include "model/ndn-ns3.hpp"
 
 #include <memory>
+using namespace std;
 
 NS_LOG_COMPONENT_DEFINE( "ndn.ProducerKan" );
 
@@ -100,6 +101,9 @@ void ProducerKan::StopApplication() {
 void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
   App::OnInterest( interest ); // tracing inside
 
+  // cout<< m_face->getId()<<endl;
+  // cout<< interest->getPITList() <<endl;
+
   NS_LOG_FUNCTION( this << interest );
 
   if ( !m_active ) return;
@@ -112,6 +116,17 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
     pe.PITList = interest->getPITList();
     int tnow   = (int) ns3::Simulator::Now().GetSeconds();
     pe.ttl     = tnow;
+
+    // add by kan 20190409
+    // std::vector<std::string> res;
+    // std::string              result;
+    // std::stringstream        input( interest->getPITList() );
+    // while ( input >> result ) {
+    //   res.push_back( result );
+    // }
+    // pe.port = std::stoi( res[ res.size() - 1 ] );
+    // end add
+
     // std::cout << pe.name << "=====" << pe.PITList << "====" << pe.ttl
     //           << std::endl;
     // std::cout << PITListStore.size() << std::endl;
@@ -135,6 +150,7 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
           data->setValidationDataFlag( 1 );
           data->setExpiration( 1 );
           data->setPITListBack( it->PITList );
+          data->setValidationPublishment( 1 );
 
           Signature     signature;
           SignatureInfo signatureInfo(
@@ -198,6 +214,7 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
         data->setValidationDataFlag( 1 );
         data->setExpiration( 0 );
         data->setPITListBack( it->PITList );
+        data->setValidationPublishment( 1 );
 
         Signature     signature;
         SignatureInfo signatureInfo(
@@ -251,10 +268,12 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
     data->setValidationDataFlag( 1 );
     data->setExpiration( 0 );
     data->setPITListBack( interest->getPITList() );
+    data->setValidationPublishment( 0 );
   } else {
     data->setValidationDataFlag( 0 );
     data->setExpiration( 0 );
     data->setPITListBack( "" );
+    data->setValidationPublishment( 0 );
   }
   // data->setValidationDataFlag( 0 );
   // data->setExpiration( 0 );

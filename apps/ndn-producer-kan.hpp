@@ -57,6 +57,7 @@ public:
     Name        name;
     std::string PITList;
     int         ttl;
+    int         port;
     // time_t      ttl;
   };
 

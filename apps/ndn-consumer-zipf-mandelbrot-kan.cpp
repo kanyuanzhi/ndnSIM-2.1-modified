@@ -178,7 +178,7 @@ ConsumerZipfMandelbrotKan::SendPacket()
   interest->setName(*nameWithSequence);
   
   // add by kan 20190401
-  interest->setPITList("PITList:");
+  interest->setPITList("");
   interest->setValidationFlag(1);
   // end add
 

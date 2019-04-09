@@ -62,8 +62,10 @@ int main( int argc, char *argv[] ) {
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   // ndnHelper.SetDefaultRoutes( true );
+  ndnHelper.setCsSize(0);
   ndnHelper.SetOldContentStore( "ns3::ndn::cs::Lru", "MaxSize", "100" );
-
+  //ndnHelper.setCsSize(100);
+  // ndnHelper.setPolicy("nfd::cs::lru")
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
@@ -82,9 +84,12 @@ int main( int argc, char *argv[] ) {
 
   // Consumer0
   ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrotKan" );
+  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "10000" ) );
+
+  // ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerCbr" );
+  // consumerHelper.SetAttribute("MaxSeq",IntegerValue(1000));
   consumerHelper.SetAttribute( "Frequency",
                                StringValue( "100" ) ); // 10 interests a second
-  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "10000" ) );
   // Consumer will request /prefix/0, /prefix/1, ...
   // consumerHelper0.SetPrefix( "/prefix/c0" );
   // consumerHelper0.Install( nodes.Get( 0 ) ); // first node
@@ -119,7 +124,7 @@ int main( int argc, char *argv[] ) {
 
   Simulator::Stop( Seconds( 20.0 ) );
 
-  ndn::L3RateTracer::InstallAll( "rate-trace.txt", Seconds( 1.0 ) );
+  // ndn::L3RateTracer::InstallAll( "rate-trace.txt", Seconds( 1.0 ) );
 
   ndn::CsTracer::InstallAll( "cs-trace.txt", Seconds( 1 ) );
 

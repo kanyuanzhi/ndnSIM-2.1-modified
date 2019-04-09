@@ -63,7 +63,7 @@ void Forwarder::onIncomingInterest( Face &inFace, const Interest &interest ) {
   // Interest* interest = const_cast<Interest*>(&interest);
   if ( interest.getValidationFlag() == 1 ) {
     std::string PITListStr = interest.getPITList();
-    PITListStr += " " + std::to_string( inFace.getId() );
+    PITListStr += std::to_string( inFace.getId() ) + " ";
     const_cast<Interest &>( interest ).setPITList( PITListStr );
   }
 
@@ -113,9 +113,8 @@ void Forwarder::onIncomingInterest( Face &inFace, const Interest &interest ) {
   bool isPending = inRecords.begin() != inRecords.end();
   if ( !isPending ) {
     if ( m_csFromNdnSim == nullptr ) {
-      m_cs.find( interest,
-                 bind( &Forwarder::onContentStoreHit, this, ref( inFace ),
-                       pitEntry, _1, _2 ),
+      m_cs.find( interest, bind( &Forwarder::onContentStoreHit, this,
+                                 ref( inFace ), pitEntry, _1, _2 ),
                  bind( &Forwarder::onContentStoreMiss, this, ref( inFace ),
                        pitEntry, _1 ) );
     } else {
@@ -296,15 +295,21 @@ void Forwarder::onInterestFinalize(
 
 void Forwarder::onIncomingData( Face &inFace, const Data &data ) {
   // add by kan 20190401 20190402
+  ++m_counters.getNInDatas();
   int node = ns3::Simulator::GetContext();
   // std::cout << "node " << node << " get data with value "
   //           << data.getPITListBack() << " " << data.getValidationDataFlag()
   //           << " " << data.getExpiration() << std::endl;
-  int ValidationFlag = data.getValidationDataFlag();
-  int Expiration     = data.getExpiration();
-
+  // cout << "node " << node << " size is " <<
+  // m_csFromNdnSim->Begin()->GetName()
+  //      << ", limit is " << endl;
+  int ValidationFlag        = data.getValidationDataFlag();    // 1或0
+  int ValidationPublishment = data.getValidationPublishment(); // 1或0
+  // int Expiration     = data.getExpiration();
+  // cout << node << " : " << data.getName() << " : " << ValidationPublishment
+  //      << endl;
   // 读取PITListBack中的当前节点入端口号
-  if ( ValidationFlag == 1 ) {
+  if ( ValidationFlag == 1 && ValidationPublishment == 1 ) {
     // 有有效性要求
     std::vector<std::string> res;
     std::string              PITList = data.getPITListBack();
@@ -313,32 +318,42 @@ void Forwarder::onIncomingData( Face &inFace, const Data &data ) {
     while ( input >> result ) {
       res.push_back( result );
     }
+
+    // cout << node << " : " << data.getName() << " : "<<PITList << " : " <<
+    // res.size() << " : "
+    //      << ValidationPublishment << endl;
     int         port            = std::stoi( res[ res.size() - 1 ] );
     std::string PITListBackTemp = "";
-    for ( int i = 0; i < res.size() - 1; i++ ) {
+    for ( unsigned int i = 0; i < res.size() - 1; i++ ) {
       PITListBackTemp += res[ i ] + " ";
     }
+
     const_cast<Data &>( data ).setPITListBack( PITListBackTemp );
     const_cast<Data &>( data ).setIncomingFaceId( inFace.getId() );
-    ++m_counters.getNInDatas();
     // cout<< to_string(port)<<endl;
-
     // 有有效性要求的内容仅在边缘节点存储
-    if ( res.size() == 2 ) {
+    if ( res.size() == 1 ) {
       // 此处是边缘节点
       shared_ptr<Data> dataCopyWithoutPacket = make_shared<Data>( data );
       dataCopyWithoutPacket->removeTag<ns3::ndn::Ns3PacketTag>();
       // CS insert
-      if ( m_csFromNdnSim == nullptr ) 
+      if ( m_csFromNdnSim == nullptr ) {
         m_cs.insert( *dataCopyWithoutPacket );
-      else
+      } else {
         m_csFromNdnSim->Add( dataCopyWithoutPacket );
+      }
+      // cout << PITList << endl;
+      // shared_ptr<Face> outFace = getFace( port );
+      // this->onOutgoingData( data, *outFace );
+      // return;
     }
 
     // 根据PITListBack记录的端口号转发有有效性要求的data
-    shared_ptr<Face> outFace = getFace( port );
-    outFace->sendData( data );
-    ++m_counters.getNOutDatas();
+    shared_ptr<Face> outFace = Forwarder::getFace( port );
+    this->onOutgoingData( data, *outFace );
+    // outFace->sendData( data );
+    // ++m_counters.getNOutDatas();
+
   }
   // end add
   else {
@@ -347,7 +362,7 @@ void Forwarder::onIncomingData( Face &inFace, const Data &data ) {
     NFD_LOG_DEBUG( "onIncomingData face=" << inFace.getId()
                                           << " data=" << data.getName() );
     const_cast<Data &>( data ).setIncomingFaceId( inFace.getId() );
-    ++m_counters.getNInDatas();
+    // ++m_counters.getNInDatas();
 
     // /localhost scope control
     bool isViolatingLocalhost =
@@ -359,13 +374,54 @@ void Forwarder::onIncomingData( Face &inFace, const Data &data ) {
       // (drop)
       return;
     }
-
     // PIT match
     pit::DataMatchResult pitMatches = m_pit.findAllDataMatches( data );
     if ( pitMatches.begin() == pitMatches.end() ) {
       // goto Data unsolicited pipeline
       this->onDataUnsolicited( inFace, data );
       return;
+    }
+
+    if ( ValidationFlag == 1 && ValidationPublishment == 0 ) {
+      std::vector<std::string> res;
+      std::string              PITList = data.getPITListBack();
+      std::string              result;
+      std::stringstream        input( PITList );
+      while ( input >> result ) {
+        res.push_back( result );
+      }
+
+      // cout << node << " : " << data.getName() << " : "<<PITList << " : " <<
+      // res.size() << " : "
+      //      << ValidationPublishment << endl;
+      if ( res.size() == 1 ) {
+        // 边缘节点存储
+        shared_ptr<Data> dataCopyWithoutPacket = make_shared<Data>( data );
+        dataCopyWithoutPacket->removeTag<ns3::ndn::Ns3PacketTag>();
+        // CS insert
+        if ( m_csFromNdnSim == nullptr ) {
+          m_cs.insert( *dataCopyWithoutPacket );
+        } else {
+          m_csFromNdnSim->Add( dataCopyWithoutPacket );
+        }
+      }
+      if ( res.size() != 0 ) {
+        std::string PITListBackTemp = "";
+        for ( unsigned int i = 0; i < res.size() - 1; i++ ) {
+          PITListBackTemp += res[ i ] + " ";
+        }
+        const_cast<Data &>( data ).setPITListBack( PITListBackTemp );
+      }
+    } else {
+      shared_ptr<Data> dataCopyWithoutPacket = make_shared<Data>( data );
+      dataCopyWithoutPacket->removeTag<ns3::ndn::Ns3PacketTag>();
+      // CS insert
+      if ( m_csFromNdnSim == nullptr ) {
+        m_cs.insert( *dataCopyWithoutPacket );
+      } else {
+        m_csFromNdnSim->Add( dataCopyWithoutPacket );
+        // cout << m_csFromNdnSim->GetSize() << endl;
+      }
     }
 
     // Remove Ptr<Packet> from the Data before inserting into cache, serving two
@@ -376,13 +432,15 @@ void Forwarder::onIncomingData( Face &inFace, const Data &data ) {
     //
     // Copying of Data is relatively cheap operation, as it copies (mostly) a
     // collection of Blocks pointing to the same underlying memory buffer.
-    shared_ptr<Data> dataCopyWithoutPacket = make_shared<Data>( data );
-    dataCopyWithoutPacket->removeTag<ns3::ndn::Ns3PacketTag>();
-    // CS insert
-    if ( m_csFromNdnSim == nullptr )
-      m_cs.insert( *dataCopyWithoutPacket );
-    else
-      m_csFromNdnSim->Add( dataCopyWithoutPacket );
+    // shared_ptr<Data> dataCopyWithoutPacket = make_shared<Data>( data );
+    // dataCopyWithoutPacket->removeTag<ns3::ndn::Ns3PacketTag>();
+    // // CS insert
+    // if ( m_csFromNdnSim == nullptr ) {
+    //   m_cs.insert( *dataCopyWithoutPacket );
+    // } else {
+    //   m_csFromNdnSim->Add( dataCopyWithoutPacket );
+    //   // cout << m_csFromNdnSim->GetSize() << endl;
+    // }
 
     std::set<shared_ptr<Face>> pendingDownstreams;
     // foreach PitEntry

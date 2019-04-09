@@ -334,6 +334,9 @@ private:
   std::string PITListBack;
   int Expiration; // 过期标志，0表示没有过期，1表示过期
 
+  // add by kan 20190409
+  int ValidationPublishment;  // 区分请求返回类型的数据（0）和主动发布的数据（1）
+
 public:
   const 
   int&
@@ -374,6 +377,20 @@ public:
     m_wire.reset();
     m_fullName.clear();
     PITListBack = str;
+    return *this;
+  }
+
+  const 
+  int&
+  getValidationPublishment() const{
+    return ValidationPublishment;
+  }
+
+  Data&
+  setValidationPublishment(const int& i){
+    m_wire.reset();
+    m_fullName.clear();
+    ValidationPublishment = i;
     return *this;
   }
   // end add

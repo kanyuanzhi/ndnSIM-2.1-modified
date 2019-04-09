@@ -256,6 +256,7 @@ CsTracer::Print(std::ostream& os) const
 
   PRINTER("CacheHits", m_cacheHits);
   PRINTER("CacheMisses", m_cacheMisses);
+  os<<time.ToDouble(Time::S)<<"\t"<<m_node<<"\t"<<"size"<<"\t"<<m_nodePtr->GetObject<ContentStore>()->GetSize()<<"\n";
 }
 
 void
