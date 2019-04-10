@@ -124,7 +124,7 @@ int main( int argc, char *argv[] ) {
 
   Simulator::Stop( Seconds( 20.0 ) );
 
-  // ndn::L3RateTracer::InstallAll( "rate-trace.txt", Seconds( 1.0 ) );
+  ndn::L3RateTracer::InstallAll( "rate-trace.txt", Seconds( 1.0 ) );
 
   ndn::CsTracer::InstallAll( "cs-trace.txt", Seconds( 1 ) );
 

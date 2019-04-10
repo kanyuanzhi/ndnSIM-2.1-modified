@@ -109,9 +109,11 @@ void Forwarder::onIncomingInterest( Face &inFace, const Interest &interest ) {
   this->cancelUnsatisfyAndStragglerTimer( pitEntry );
 
   // is pending?
+  // isPending为True时，表示有两条及以上记录，对于普通请求，cs表中肯定无记录，对于有效性请求，可能有记录
   const pit::InRecordCollection &inRecords = pitEntry->getInRecords();
   bool isPending = inRecords.begin() != inRecords.end();
   if ( !isPending ) {
+    // 由于实验使用哦oldContentStrore，此处并未考虑到m_csFromNdnSim==nullptr的情况
     if ( m_csFromNdnSim == nullptr ) {
       m_cs.find( interest, bind( &Forwarder::onContentStoreHit, this,
                                  ref( inFace ), pitEntry, _1, _2 ),
@@ -121,13 +123,39 @@ void Forwarder::onIncomingInterest( Face &inFace, const Interest &interest ) {
       shared_ptr<Data> match =
           m_csFromNdnSim->Lookup( interest.shared_from_this() );
       if ( match != nullptr ) {
-        this->onContentStoreHit( inFace, pitEntry, interest, *match );
+        // add by kan 20190409
+        // 判断过期字段是否为1，若为1，表示该数据包是服务器在删除PITListStore中的记录时发出的，
+        // 此时该数据包有可能不是最新，需要重新向服务器发起请求。
+        if ( match->getExpiration() == 1 )
+          this->onContentStoreMiss( inFace, pitEntry, interest );
+        else
+          this->onContentStoreHit( inFace, pitEntry, interest, *match );
+        // end add
       } else {
         this->onContentStoreMiss( inFace, pitEntry, interest );
       }
     }
   } else {
-    this->onContentStoreMiss( inFace, pitEntry, interest );
+    // add by kan 20190410
+    // 当PIT表中中有聚合记录时，对于有效性请求，需要查询CS中是否有记录
+    if ( interest.getValidationFlag() == 1 ) {
+      shared_ptr<Data> match =
+          m_csFromNdnSim->Lookup( interest.shared_from_this() );
+      if ( match != nullptr ) {
+        // 判断过期字段是否为1，若为1，表示该数据包是服务器在删除PITListStore中的记录时发出的，
+        // 此时该数据包有可能不是最新，需要重新向服务器发起请求。
+        if ( match->getExpiration() == 1 )
+          this->onContentStoreMiss( inFace, pitEntry, interest );
+        else
+          this->onContentStoreHit( inFace, pitEntry, interest, *match );
+
+      } else {
+        this->onContentStoreMiss( inFace, pitEntry, interest );
+      }
+      // end add
+    } else {
+      this->onContentStoreMiss( inFace, pitEntry, interest );
+    }
   }
 }
 

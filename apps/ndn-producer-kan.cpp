@@ -148,7 +148,7 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
 
           // 设置有有效性要求的数据包字段
           data->setValidationDataFlag( 1 );
-          data->setExpiration( 1 );
+          data->setExpiration( 1 ); // 过妻子段置1，用户请求到该数据包时需要重新向服务器发起请求
           data->setPITListBack( it->PITList );
           data->setValidationPublishment( 1 );
 
