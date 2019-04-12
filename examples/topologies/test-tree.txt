@@ -41,12 +41,12 @@ user2-2 NA 10 40 2
 link
 
 # from	    to		capacity	metric	delay	queue
-root    rtr1-1 10Mbps		1	1ms	100
-root    rtr1-2 10Mbps		1	1ms	100
-rtr1-1  user1-1 10Mbps		1	1ms	100
-rtr1-1  rtr2-1 10Mbps		1	1ms	100
-rtr1-2  user1-2 10Mbps		1	1ms	100
-rtr1-2  user1-3 10Mbps		1	1ms	100
-rtr2-1  user2-1 10Mbps		1	1ms	100
-rtr2-1  user2-2 10Mbps		1	1ms	100
+root    rtr1-1 10Mbps		1	0ms	100
+root    rtr1-2 10Mbps		1	0ms	100
+rtr1-1  user1-1 10Mbps		1	0ms	100
+rtr1-1  rtr2-1 10Mbps		1	0ms	100
+rtr1-2  user1-2 10Mbps		1	0ms	100
+rtr1-2  user1-3 10Mbps		1	0ms	100
+rtr2-1  user2-1 10Mbps		1	0ms	100
+rtr2-1  user2-2 10Mbps		1	0ms	100
 

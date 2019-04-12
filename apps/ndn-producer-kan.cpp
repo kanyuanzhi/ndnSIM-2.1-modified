@@ -51,12 +51,11 @@ TypeId ProducerKan::GetTypeId( void ) {
                          StringValue( "/" ),
                          MakeNameAccessor( &ProducerKan::m_prefix ),
                          MakeNameChecker() )
-          .AddAttribute( "Postfix",
-                         "Postfix that is added to the output data (e.g., "
+          .AddAttribute(
+              "Postfix", "Postfix that is added to the output data (e.g., "
                          "for adding producer-uniqueness)",
-                         StringValue( "/" ),
-                         MakeNameAccessor( &ProducerKan::m_postfix ),
-                         MakeNameChecker() )
+              StringValue( "/" ), MakeNameAccessor( &ProducerKan::m_postfix ),
+              MakeNameChecker() )
           .AddAttribute(
               "PayloadSize", "Virtual payload size for Content packets",
               UintegerValue( 1024 ),
@@ -73,12 +72,11 @@ TypeId ProducerKan::GetTypeId( void ) {
                          UintegerValue( 0 ),
                          MakeUintegerAccessor( &ProducerKan::m_signature ),
                          MakeUintegerChecker<uint32_t>() )
-          .AddAttribute( "KeyLocator",
-                         "Name to be used for key locator.  If root, then "
-                         "key locator is not used",
-                         NameValue(),
-                         MakeNameAccessor( &ProducerKan::m_keyLocator ),
-                         MakeNameChecker() );
+          .AddAttribute(
+              "KeyLocator", "Name to be used for key locator.  If root, then "
+                            "key locator is not used",
+              NameValue(), MakeNameAccessor( &ProducerKan::m_keyLocator ),
+              MakeNameChecker() );
   return tid;
 }
 
@@ -110,6 +108,9 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
 
   // add by kan 20190331
   // 把具有有效性要求的内容存入PITListStore中，设置过期时间，到期内容删除前再发布一次，过期字段置为1
+
+  unsigned int maxSize = 100;
+
   if ( interest->getValidationFlag() == 1 ) {
     struct PITListEntry pe;
     pe.name    = interest->getName();
@@ -148,7 +149,8 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
 
           // 设置有有效性要求的数据包字段
           data->setValidationDataFlag( 1 );
-          data->setExpiration( 1 ); // 过妻子段置1，用户请求到该数据包时需要重新向服务器发起请求
+          data->setExpiration(
+              1 ); // 过期字段置1，用户请求到该数据包时需要重新向服务器发起请求
           data->setPITListBack( it->PITList );
           data->setValidationPublishment( 1 );
 
@@ -185,13 +187,54 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
         }
       }
     }
+    // add by kan 20190411
+    // PITListStore达到最大缓存时，删除末尾记录，在头部插入新记录
+    if ( PITListStore.size() == maxSize ) {
+      struct PITListEntry temp = PITListStore.back();
+      Name                dataName( temp.name );
+      auto                data = make_shared<Data>();
+      data->setName( dataName );
+      data->setFreshnessPeriod(
+          ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
+
+      data->setContent( make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
+
+      // 设置有有效性要求的数据包字段
+      data->setValidationDataFlag( 1 );
+      data->setExpiration( 1 );
+      data->setPITListBack( temp.PITList );
+      data->setValidationPublishment( 1 );
+
+      Signature     signature;
+      SignatureInfo signatureInfo(
+          static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
+
+      if ( m_keyLocator.size() > 0 ) {
+        signatureInfo.setKeyLocator( m_keyLocator );
+      }
+
+      signature.setInfo( signatureInfo );
+      signature.setValue(::ndn::nonNegativeIntegerBlock(
+          ::ndn::tlv::SignatureValue, m_signature ) );
+
+      data->setSignature( signature );
+      data->wireEncode();
+
+      m_transmittedDatas( data, this, m_face );
+      m_face->onReceiveData( *data );
+
+      PITListStore.pop_back(); // 删除表尾元素
+    }
+
     PITListStore.push_front( pe );
     // std::cout << PITListStore.size() << std::endl;
   }
 
   // 每隔frequency秒把PITListStore内的信息发布一次
-  int    frequency = 5;
+  int    frequency = 30;
   double tnow      = ns3::Simulator::Now().GetSeconds();
+  // std::cout << tnow << std::endl;
+  // std::cout << PITListStore.size() << std::endl;
   if ( (int) tnow % frequency != 0 ) {
     published = false;
   }

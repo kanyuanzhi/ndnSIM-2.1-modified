@@ -26,6 +26,8 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 
+using namespace std;
+
 namespace ns3 {
 
 int main( int argc, char *argv[] ) {
@@ -62,10 +64,11 @@ int main( int argc, char *argv[] ) {
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   // ndnHelper.SetDefaultRoutes( true );
-  ndnHelper.setCsSize( 0 );
-  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Lru", "MaxSize", "100" );
+  // ndnHelper.SetOldContentStore( "ns3::ndn::cs::Nocache" );
   // ndnHelper.setCsSize(100);
   // ndnHelper.setPolicy("nfd::cs::lru")
+  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Freshness::Lru", "MaxSize", "100" );
+
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
@@ -83,7 +86,7 @@ int main( int argc, char *argv[] ) {
   consumerNodes.Add( Names::Find<Node>( "user2-2" ) );
 
   // Consumer0
-  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrotKan" );
+  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrot" );
   consumerHelper.SetAttribute( "NumberOfContents", StringValue( "10000" ) );
   consumerHelper.SetAttribute( "q", StringValue( "0" ) );
   consumerHelper.SetAttribute( "s", StringValue( "1.2" ) );
@@ -120,6 +123,9 @@ int main( int argc, char *argv[] ) {
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix( "/prefix" );
   producerHelper.SetAttribute( "PayloadSize", StringValue( "1024" ) );
+  
+  float fresh_fre = 0.5;
+  producerHelper.SetAttribute( "Freshness", TimeValue( Seconds(fresh_fre) ) );
   // producerHelper.Install( nodes.Get( 4 ) ); // last node
   producerHelper.Install( producer );
   ndnGlobalRoutingHelper.AddOrigins( "/prefix", producer );
@@ -127,12 +133,9 @@ int main( int argc, char *argv[] ) {
 
   Simulator::Stop( Seconds( 90.0 ) );
 
-  std::string pub_fre = "30";
+  ndn::L3RateTracer::InstallAll( "freshness-rate-trace-"+to_string(fresh_fre)+"-"+req_fre+".txt", Seconds( 1.0 ) );
 
-  ndn::L3RateTracer::InstallAll( "rate-trace-" + pub_fre + "-10-"+req_fre+".txt",
-                                 Seconds( 1.0 ) );
-
-  ndn::CsTracer::InstallAll( "cs-trace-" + pub_fre + "-10-"+req_fre+".txt", Seconds( 1 ) );
+  ndn::CsTracer::InstallAll( "freshness-cs-trace-"+to_string(fresh_fre)+"-"+req_fre+".txt", Seconds( 1 ) );
 
   Simulator::Run();
   Simulator::Destroy();
