@@ -130,6 +130,9 @@ public:
   virtual bool
   Add(shared_ptr<const Data> data) = 0;
 
+  virtual void
+  Erase(shared_ptr<const Data> data) = 0;
+
   // /*
   //  * \brief Add a new content to the content store.
   //  *

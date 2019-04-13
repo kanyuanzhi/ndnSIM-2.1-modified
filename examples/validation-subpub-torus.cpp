@@ -45,7 +45,7 @@ int main( int argc, char *argv[] ) {
   cmd.Parse( argc, argv );
 
   AnnotatedTopologyReader topologyReader( "", 1 );
-  topologyReader.SetFileName( "src/ndnSIM/examples/topologies/test-tree.txt" );
+  topologyReader.SetFileName( "src/ndnSIM/examples/topologies/torus-grid-5.txt" );
   topologyReader.Read();
 
   // Creating nodes
@@ -61,14 +61,27 @@ int main( int argc, char *argv[] ) {
   // p2p.Install( nodes.Get( 5 ), nodes.Get( 2 ) );
   // p2p.Install( nodes.Get( 6 ), nodes.Get( 3 ) );
 
+  string strategy_name = "SubPub";
+  string zipf         = "1.2"; // 齐普夫参数
+  string cache_size   = "100"; // 缓存大小
+  string request_rate = "20"; // 请求速率
+  string update_rate  = "1";   // 更新速率
+  string pit_cs_size  = "20"; // PITCS表大小
+
+  string rate_trace = "rate-trace-" + strategy_name + "-" + zipf + "-" +
+                      cache_size + "-" + request_rate + "-" + update_rate +
+                      "-" + pit_cs_size + ".txt";
+  string cs_trace = "cs-trace-" + strategy_name + "-" + zipf + "-" +
+                    cache_size + "-" + request_rate + "-" + update_rate + "-" +
+                    pit_cs_size + ".txt";
+
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   // ndnHelper.SetDefaultRoutes( true );
-  // ndnHelper.SetOldContentStore( "ns3::ndn::cs::Nocache" );
+  ndnHelper.setCsSize( 0 );
+  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Lru", "MaxSize", cache_size );
   // ndnHelper.setCsSize(100);
   // ndnHelper.setPolicy("nfd::cs::lru")
-  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Freshness::Lru", "MaxSize", "100" );
-
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
@@ -77,65 +90,44 @@ int main( int argc, char *argv[] ) {
   ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
   ndnGlobalRoutingHelper.InstallAll();
   // Installing applications
-  Ptr<Node>     producer = Names::Find<Node>( "root" );
+  Ptr<Node>     producer = Names::Find<Node>( "12" );
+  // NodeContainer producersNodes;
+  // producersNodes.Add(Names::Find<Node>( "0" ) );
+  // producersNodes.Add(Names::Find<Node>( "4" ) );
+  // producersNodes.Add(Names::Find<Node>( "20" ) );
+  // producersNodes.Add(Names::Find<Node>( "24" ) );
+  //NodeContainer
   NodeContainer consumerNodes;
-  consumerNodes.Add( Names::Find<Node>( "user1-1" ) );
-  consumerNodes.Add( Names::Find<Node>( "user1-2" ) );
-  consumerNodes.Add( Names::Find<Node>( "user1-3" ) );
-  consumerNodes.Add( Names::Find<Node>( "user2-1" ) );
-  consumerNodes.Add( Names::Find<Node>( "user2-2" ) );
+  for (int i = 0; i<25; i++){
+    consumerNodes.Add(Names::Find<Node>( std::to_string(i) ) );
+  }
 
-  // Consumer0
-  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrot" );
+  // Consumer
+  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrotKan" );
   consumerHelper.SetAttribute( "NumberOfContents", StringValue( "10000" ) );
   consumerHelper.SetAttribute( "q", StringValue( "0" ) );
-  consumerHelper.SetAttribute( "s", StringValue( "1.2" ) );
-
-  // ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerCbr" );
-  // consumerHelper.SetAttribute("MaxSeq",IntegerValue(1000));
-  std::string req_fre = "100";
-  consumerHelper.SetAttribute( "Frequency",
-                               StringValue( req_fre ) ); // 10 interests a second
-  // Consumer will request /prefix/0, /prefix/1, ...
-  // consumerHelper0.SetPrefix( "/prefix/c0" );
-  // consumerHelper0.Install( nodes.Get( 0 ) ); // first node
-
-  // consumerHelper0.SetPrefix( "/prefix/c5" );
-  // consumerHelper0.Install( nodes.Get( 5 ) );
-
-  // consumerHelper0.SetPrefix( "/prefix/c6" );
-  // consumerHelper0.Install( nodes.Get( 6 ) );
+  consumerHelper.SetAttribute( "s", StringValue( zipf ) );
+  consumerHelper.SetAttribute( "Frequency", StringValue( request_rate ) );
   consumerHelper.SetPrefix( "/prefix" );
   consumerHelper.Install( consumerNodes );
-  // Consumer1
-  // ndn::AppHelper consumerHelper1( "ns3::ndn::ConsumerZipfMandelbrot" );
-
-  // // Consumer will request /prefix/0, /prefix/1, ...
-  // consumerHelper1.SetPrefix( "/prefix/c1" );
-  // consumerHelper1.SetAttribute( "Frequency",
-  //                               StringValue( "100" ) ); // 10 interests a
-  //                               second
-  // consumerHelper0.SetAttribute( "NumberOfContents", StringValue( "1000" ) );
-  // consumerHelper1.Install( nodes.Get( 1 ) ); // first node
 
   // Producer
   ndn::AppHelper producerHelper( "ns3::ndn::ProducerKan" );
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix( "/prefix" );
   producerHelper.SetAttribute( "PayloadSize", StringValue( "1024" ) );
-  
-  float fresh_fre = 0.5;
-  producerHelper.SetAttribute( "Freshness", TimeValue( Seconds(fresh_fre) ) );
   // producerHelper.Install( nodes.Get( 4 ) ); // last node
   producerHelper.Install( producer );
   ndnGlobalRoutingHelper.AddOrigins( "/prefix", producer );
+  // producerHelper.Install( producersNodes );
+  // ndnGlobalRoutingHelper.AddOrigins( "/prefix", producersNodes );
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
   Simulator::Stop( Seconds( 90.0 ) );
 
-  ndn::L3RateTracer::InstallAll( "freshness-rate-trace-"+to_string(fresh_fre)+"-"+req_fre+".txt", Seconds( 1.0 ) );
+  ndn::L3RateTracer::InstallAll( rate_trace, Seconds( 1.0 ) );
 
-  ndn::CsTracer::InstallAll( "freshness-cs-trace-"+to_string(fresh_fre)+"-"+req_fre+".txt", Seconds( 1 ) );
+  ndn::CsTracer::InstallAll( cs_trace, Seconds( 1 ) );
 
   Simulator::Run();
   Simulator::Destroy();

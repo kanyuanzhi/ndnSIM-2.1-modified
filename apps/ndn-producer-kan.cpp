@@ -109,7 +109,7 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
   // add by kan 20190331
   // 把具有有效性要求的内容存入PITListStore中，设置过期时间，到期内容删除前再发布一次，过期字段置为1
 
-  unsigned int maxSize = 100;
+  unsigned int maxSize = 20;
 
   if ( interest->getValidationFlag() == 1 ) {
     struct PITListEntry pe;
@@ -137,53 +137,54 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
       for ( it = PITListStore.begin(); it != PITListStore.end(); it = next ) {
         next = ++it;
         --it;
-        if ( tnow - it->ttl > 10 ) {
-          Name dataName( it->name );
-          auto data = make_shared<Data>();
-          data->setName( dataName );
-          data->setFreshnessPeriod(
-              ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
+        // if ( tnow - it->ttl > 1000 ) {
+        //   Name dataName( it->name );
+        //   auto data = make_shared<Data>();
+        //   data->setName( dataName );
+        //   data->setFreshnessPeriod(
+        //       ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
 
-          data->setContent(
-              make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
+        //   data->setContent(
+        //       make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
 
-          // 设置有有效性要求的数据包字段
-          data->setValidationDataFlag( 1 );
-          data->setExpiration(
-              1 ); // 过期字段置1，用户请求到该数据包时需要重新向服务器发起请求
-          data->setPITListBack( it->PITList );
-          data->setValidationPublishment( 1 );
+        //   // 设置有有效性要求的数据包字段
+        //   data->setValidationDataFlag( 1 );
+        //   data->setExpiration(
+        //       1 ); //
+        //       过期字段置1，用户请求到该数据包时需要重新向服务器发起请求
+        //   data->setPITListBack( it->PITList );
+        //   data->setValidationPublishment( 1 );
 
-          Signature     signature;
-          SignatureInfo signatureInfo(
-              static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
+        //   Signature     signature;
+        //   SignatureInfo signatureInfo(
+        //       static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
 
-          if ( m_keyLocator.size() > 0 ) {
-            signatureInfo.setKeyLocator( m_keyLocator );
-          }
+        //   if ( m_keyLocator.size() > 0 ) {
+        //     signatureInfo.setKeyLocator( m_keyLocator );
+        //   }
 
-          signature.setInfo( signatureInfo );
-          signature.setValue(::ndn::nonNegativeIntegerBlock(
-              ::ndn::tlv::SignatureValue, m_signature ) );
+        //   signature.setInfo( signatureInfo );
+        //   signature.setValue(::ndn::nonNegativeIntegerBlock(
+        //       ::ndn::tlv::SignatureValue, m_signature ) );
 
-          data->setSignature( signature );
-          data->wireEncode();
+        //   data->setSignature( signature );
+        //   data->wireEncode();
 
-          m_transmittedDatas( data, this, m_face );
-          m_face->onReceiveData( *data );
+        //   m_transmittedDatas( data, this, m_face );
+        //   m_face->onReceiveData( *data );
 
-          PITListStore.erase( it );
-        }
+        //   PITListStore.erase( it );
+        // }
         if ( it->PITList == interest->getPITList() &&
              it->name == interest->getName() ) {
-          // std::cout << "REPEAT!!!!!!!!!" << std::endl;
           PITListStore.erase( it );
-          // struct PITListEntry peTemp;
-          // peTemp.name = it->name;
-          // peTemp.PITList = it->PITList;read
-
-          // PITListStore.push_front(peTemp);
-          // break;
+        } else if ( it->PITList.find( interest->getPITList() ) &&
+                    it->name == interest->getName() ) {
+          pe.PITList = it->PITList;
+          PITListStore.erase( it );
+        } else if ( interest->getPITList().find( it->PITList ) &&
+                    it->name == interest->getName() ) {
+          PITListStore.erase( it );
         }
       }
     }
@@ -225,23 +226,26 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
 
       PITListStore.pop_back(); // 删除表尾元素
     }
-
     PITListStore.push_front( pe );
     // std::cout << PITListStore.size() << std::endl;
   }
 
   // 每隔frequency秒把PITListStore内的信息发布一次
-  int    frequency = 30;
+  double frequency = 1;
   double tnow      = ns3::Simulator::Now().GetSeconds();
-  // std::cout << tnow << std::endl;
+  std::cout << tnow << std::endl;
   // std::cout << PITListStore.size() << std::endl;
-  if ( (int) tnow % frequency != 0 ) {
+  // std::cout << PITListStore.back().name << std::endl;
+  if ( (int) ( tnow * 10 ) % (int) ( frequency * 10 ) != 0 ) {
     published = false;
   }
   // std::cout << "false " << tnow << std::endl;
-  if ( (int) tnow % frequency == 0 && (int) tnow != 0 ) {
+  if ( (int) ( tnow * 10 ) % (int) ( frequency * 10 ) == 0 && (int) tnow != 0 &&
+       interest->getValidationFlag() == 1 ) {
+    // std::cout << published << std::endl;
     if ( !published ) {
-      // std::cout << "true " << tnow << std::endl;
+      std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << tnow
+                << std::endl;
       published = true;
       for ( std::list<PITListEntry>::iterator it = PITListStore.begin();
             it != PITListStore.end(); it++ ) {

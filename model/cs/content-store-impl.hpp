@@ -108,6 +108,11 @@ public:
   virtual inline bool
   Add(shared_ptr<const Data> data);
 
+  // add by kan 20190412
+  virtual inline void
+  Erase(shared_ptr<const Data> data);
+  // end add
+
   // virtual bool
   // Remove (shared_ptr<Interest> header);
 
@@ -252,6 +257,14 @@ ContentStoreImpl<Policy>::Add(shared_ptr<const Data> data)
   }
   else
     return false; // cannot insert entry
+}
+
+template<class Policy>
+void
+ContentStoreImpl<Policy>::Erase(shared_ptr<const Data> data)
+{
+  NS_LOG_FUNCTION(this << data->getName());
+  super::erase(data->getName());
 }
 
 template<class Policy>

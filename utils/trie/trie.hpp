@@ -198,6 +198,7 @@ public:
     BOOST_FOREACH (const Key& subkey, key) {
       typename unordered_set::iterator item = trieNode->children_.find(subkey);
       if (item == trieNode->children_.end()) {
+        //std::cout << "new" << std::endl;
         trie* newNode = new trie(subkey, initialBucketSize_, bucketIncrement_);
         // std::cout << "new " << newNode << "\n";
         newNode->parent_ = trieNode;
@@ -216,8 +217,11 @@ public:
 
         trieNode = &(*ret.first);
       }
-      else
+      else{
+        //std::cout << "old" << std::endl;
         trieNode = &(*item);
+      }
+        
     }
 
     if (trieNode->payload_ == PayloadTraits::empty_payload) {

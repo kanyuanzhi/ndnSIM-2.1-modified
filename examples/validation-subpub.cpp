@@ -26,6 +26,8 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 
+using namespace std;
+
 namespace ns3 {
 
 int main( int argc, char *argv[] ) {
@@ -59,10 +61,25 @@ int main( int argc, char *argv[] ) {
   // p2p.Install( nodes.Get( 5 ), nodes.Get( 2 ) );
   // p2p.Install( nodes.Get( 6 ), nodes.Get( 3 ) );
 
+  string strategy_name = "SubPub";
+  string zipf         = "1.2"; // 齐普夫参数
+  string cache_size   = "100"; // 缓存大小
+  string request_rate = "10"; // 请求速率
+  string update_rate  = "5";   // 更新速率
+  string pit_cs_size  = "500"; // PITCS表大小
+
+  string rate_trace = "rate-trace-" + strategy_name + "-" + zipf + "-" +
+                      cache_size + "-" + request_rate + "-" + update_rate +
+                      "-" + pit_cs_size + ".txt";
+  string cs_trace = "cs-trace-" + strategy_name + "-" + zipf + "-" +
+                    cache_size + "-" + request_rate + "-" + update_rate + "-" +
+                    pit_cs_size + ".txt";
+
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   // ndnHelper.SetDefaultRoutes( true );
-  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Nocache" );
+  ndnHelper.setCsSize( 0 );
+  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Lru", "MaxSize", cache_size );
   // ndnHelper.setCsSize(100);
   // ndnHelper.setPolicy("nfd::cs::lru")
   ndnHelper.InstallAll();
@@ -80,42 +97,22 @@ int main( int argc, char *argv[] ) {
   consumerNodes.Add( Names::Find<Node>( "user1-3" ) );
   consumerNodes.Add( Names::Find<Node>( "user2-1" ) );
   consumerNodes.Add( Names::Find<Node>( "user2-2" ) );
+  consumerNodes.Add( Names::Find<Node>( "root" ) );
+  consumerNodes.Add( Names::Find<Node>( "rtr1-1" ) );
+  consumerNodes.Add( Names::Find<Node>( "rtr1-2" ) );
+  consumerNodes.Add( Names::Find<Node>( "rtr2-1" ) );
 
-  // Consumer0
-  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrot" );
+  // Consumer
+  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrotKan" );
   consumerHelper.SetAttribute( "NumberOfContents", StringValue( "10000" ) );
   consumerHelper.SetAttribute( "q", StringValue( "0" ) );
-  consumerHelper.SetAttribute( "s", StringValue( "1.2" ) );
-
-  // ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerCbr" );
-  // consumerHelper.SetAttribute("MaxSeq",IntegerValue(1000));
-  std::string fre = "500";
-  consumerHelper.SetAttribute( "Frequency",
-                               StringValue( fre ) ); // 10 interests a second
-  // Consumer will request /prefix/0, /prefix/1, ...
-  // consumerHelper0.SetPrefix( "/prefix/c0" );
-  // consumerHelper0.Install( nodes.Get( 0 ) ); // first node
-
-  // consumerHelper0.SetPrefix( "/prefix/c5" );
-  // consumerHelper0.Install( nodes.Get( 5 ) );
-
-  // consumerHelper0.SetPrefix( "/prefix/c6" );
-  // consumerHelper0.Install( nodes.Get( 6 ) );
+  consumerHelper.SetAttribute( "s", StringValue( zipf ) );
+  consumerHelper.SetAttribute( "Frequency", StringValue( request_rate ) );
   consumerHelper.SetPrefix( "/prefix" );
   consumerHelper.Install( consumerNodes );
-  // Consumer1
-  // ndn::AppHelper consumerHelper1( "ns3::ndn::ConsumerZipfMandelbrot" );
-
-  // // Consumer will request /prefix/0, /prefix/1, ...
-  // consumerHelper1.SetPrefix( "/prefix/c1" );
-  // consumerHelper1.SetAttribute( "Frequency",
-  //                               StringValue( "100" ) ); // 10 interests a
-  //                               second
-  // consumerHelper0.SetAttribute( "NumberOfContents", StringValue( "1000" ) );
-  // consumerHelper1.Install( nodes.Get( 1 ) ); // first node
 
   // Producer
-  ndn::AppHelper producerHelper( "ns3::ndn::Producer" );
+  ndn::AppHelper producerHelper( "ns3::ndn::ProducerKan" );
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix( "/prefix" );
   producerHelper.SetAttribute( "PayloadSize", StringValue( "1024" ) );
@@ -126,9 +123,9 @@ int main( int argc, char *argv[] ) {
 
   Simulator::Stop( Seconds( 90.0 ) );
 
-  ndn::L3RateTracer::InstallAll( "rate-trace-normal-10-"+fre+".txt", Seconds( 1.0 ) );
+  ndn::L3RateTracer::InstallAll( rate_trace, Seconds( 1.0 ) );
 
-  // ndn::CsTracer::InstallAll( "cs-trace.txt", Seconds( 1 ) );
+  ndn::CsTracer::InstallAll( cs_trace, Seconds( 1 ) );
 
   Simulator::Run();
   Simulator::Destroy();
