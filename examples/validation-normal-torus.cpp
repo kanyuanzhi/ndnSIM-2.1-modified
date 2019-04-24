@@ -43,22 +43,28 @@ int main( int argc, char *argv[] ) {
   cmd.Parse( argc, argv );
 
   AnnotatedTopologyReader topologyReader( "", 1 );
-  topologyReader.SetFileName( "src/ndnSIM/examples/topologies/torus-grid-5.txt" );
+  topologyReader.SetFileName(
+      "src/ndnSIM/examples/topologies/torus-grid-5.txt" );
   topologyReader.Read();
 
-  string strategy_name = "Normal";
-  string zipf          = "1.2"; // 齐普夫参数
-  string cache_size    = "100"; // 缓存大小
-  string request_rate  = "20"; // 请求速率
-  string update_rate   = "5";   // 更新速率
-  string pit_cs_size   = "500"; // PITCS表大小
+  string strategy_name       = "Normal";
+  string zipf                = "0.7"; // 齐普夫参数
+  string cache_size          = "100";  // 缓存大小
+  string request_rate        = "10";  // 请求速率
+  string average_update_time = "20";  // 更新时间
+  string pit_store_size      = "80";  // PITCS表大小
+  string update_factor =
+      "1.0"; // 更新因子，0表示同一内容内容更新时间不变，1表示更新时间在内容到期后必变
+  string experiment_time = "150";
 
   string rate_trace = "rate-trace-" + strategy_name + "-" + zipf + "-" +
-                      cache_size + "-" + request_rate + "-" + update_rate +
-                      "-" + pit_cs_size + ".txt";
+                      cache_size + "-" + request_rate + "-" +
+                      average_update_time + "-" + pit_store_size + "-" +
+                      update_factor + "-" + experiment_time + ".txt";
   string cs_trace = "cs-trace-" + strategy_name + "-" + zipf + "-" +
-                    cache_size + "-" + request_rate + "-" + update_rate + "-" +
-                    pit_cs_size + ".txt";
+                    cache_size + "-" + request_rate + "-" +
+                    average_update_time + "-" + pit_store_size + "-" +
+                    update_factor + "-" + experiment_time + ".txt";
 
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
@@ -74,17 +80,16 @@ int main( int argc, char *argv[] ) {
   ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
   ndnGlobalRoutingHelper.InstallAll();
   // Installing applications
-  Ptr<Node>     producer = Names::Find<Node>( "12" );
-  //NodeContainer
+  Ptr<Node> producer = Names::Find<Node>( "12" );
+  // NodeContainer
   NodeContainer consumerNodes;
-  for (int i = 0; i<25; i++){
-    consumerNodes.Add(Names::Find<Node>( std::to_string(i) ) );
+  for ( int i = 0; i < 25; i++ ) {
+    consumerNodes.Add( Names::Find<Node>( std::to_string( i ) ) );
   }
-
 
   // Consumer0
   ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrot" );
-  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "10000" ) );
+  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "5000" ) );
   consumerHelper.SetAttribute( "q", StringValue( "0" ) );
   consumerHelper.SetAttribute( "s", StringValue( zipf ) );
 
@@ -114,17 +119,23 @@ int main( int argc, char *argv[] ) {
   // consumerHelper1.Install( nodes.Get( 1 ) ); // first node
 
   // Producer
-  ndn::AppHelper producerHelper( "ns3::ndn::ProducerKan" );
+  ndn::AppHelper producerHelper( "ns3::ndn::ProducerKanV2" );
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix( "/prefix" );
   producerHelper.SetAttribute( "PayloadSize", StringValue( "1024" ) );
+  producerHelper.SetAttribute( "AverageUpdateTime",
+                               StringValue( average_update_time ) );
+  producerHelper.SetAttribute( "MaxPITStoreSize",
+                               StringValue( pit_store_size ) );
+  producerHelper.SetAttribute( "ExprimentTime",
+                               StringValue( experiment_time ) );
   // producerHelper.Install( nodes.Get( 4 ) ); // last node
   producerHelper.Install( producer );
   ndnGlobalRoutingHelper.AddOrigins( "/prefix", producer );
 
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
-  Simulator::Stop( Seconds( 90.0 ) );
+  Simulator::Stop( Seconds( stod( experiment_time ) ) );
 
   ndn::L3RateTracer::InstallAll( rate_trace, Seconds( 1.0 ) );
 

@@ -108,8 +108,11 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
 
   // add by kan 20190331
   // 把具有有效性要求的内容存入PITListStore中，设置过期时间，到期内容删除前再发布一次，过期字段置为1
+  // 每隔frequency秒把PITListStore内的信息发布一次
+  double frequency = 5;
 
-  unsigned int maxSize = 20;
+  unsigned int maxSize = 1500;
+  
 
   if ( interest->getValidationFlag() == 1 ) {
     struct PITListEntry pe;
@@ -230,11 +233,10 @@ void ProducerKan::OnInterest( shared_ptr<const Interest> interest ) {
     // std::cout << PITListStore.size() << std::endl;
   }
 
-  // 每隔frequency秒把PITListStore内的信息发布一次
-  double frequency = 1;
+  
   double tnow      = ns3::Simulator::Now().GetSeconds();
   std::cout << tnow << std::endl;
-  // std::cout << PITListStore.size() << std::endl;
+  std::cout << PITListStore.size() << std::endl;
   // std::cout << PITListStore.back().name << std::endl;
   if ( (int) ( tnow * 10 ) % (int) ( frequency * 10 ) != 0 ) {
     published = false;

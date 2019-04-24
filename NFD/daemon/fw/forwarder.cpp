@@ -127,11 +127,12 @@ void Forwarder::onIncomingInterest( Face &inFace, const Interest &interest ) {
         // 判断过期字段是否为1，若为1，表示该数据包是服务器在删除PITListStore中的记录时发出的，
         // 此时该数据包有可能不是最新，需要重新向服务器发起请求。
         // cout << "exp: " <<match->getExpiration() <<endl;
-        if ( match->getExpiration() == 1 ) {
-          // cout << "expiration" << endl;
-          this->onContentStoreMiss( inFace, pitEntry, interest );
-        } else
-          this->onContentStoreHit( inFace, pitEntry, interest, *match );
+        // if ( match->getExpiration() == 1 ) {
+        //   cout << "××××××××××××××××××××××××××××××××××××××××××××××××××" <<
+        //   endl;
+        //   this->onContentStoreMiss( inFace, pitEntry, interest );
+        // } else
+        this->onContentStoreHit( inFace, pitEntry, interest, *match );
         // end add
       } else {
         this->onContentStoreMiss( inFace, pitEntry, interest );
@@ -146,10 +147,10 @@ void Forwarder::onIncomingInterest( Face &inFace, const Interest &interest ) {
       if ( match != nullptr ) {
         // 判断过期字段是否为1，若为1，表示该数据包是服务器在删除PITListStore中的记录时发出的，
         // 此时该数据包有可能不是最新，需要重新向服务器发起请求。
-        if ( match->getExpiration() == 1 )
-          this->onContentStoreMiss( inFace, pitEntry, interest );
-        else
-          this->onContentStoreHit( inFace, pitEntry, interest, *match );
+        // if ( match->getExpiration() == 1 )
+        //   this->onContentStoreMiss( inFace, pitEntry, interest );
+        // else
+        this->onContentStoreHit( inFace, pitEntry, interest, *match );
 
       } else {
         this->onContentStoreMiss( inFace, pitEntry, interest );
@@ -369,13 +370,22 @@ void Forwarder::onIncomingData( Face &inFace, const Data &data ) {
 
     shared_ptr<Data> dataCopyWithoutPacket = make_shared<Data>( data );
     dataCopyWithoutPacket->removeTag<ns3::ndn::Ns3PacketTag>();
-    // CS insert
-    if ( m_csFromNdnSim == nullptr ) {
-      m_cs.insert( *dataCopyWithoutPacket );
-    } else {
+    if ( Expiration == 1 ) {
+      // Expiration字段为1，则是过期内容，将cs表中该内容删除
+      // cout << "before: " <<m_csFromNdnSim->GetSize() <<endl;
       m_csFromNdnSim->Erase( dataCopyWithoutPacket );
-      m_csFromNdnSim->Add( dataCopyWithoutPacket );
+      // cout << "Node-" << node << " : "<< data.getName() << " : " << data.getPITListBack() <<endl;
+      // cout << "after: " << m_csFromNdnSim->GetSize() <<endl;
+    } else {
+      // CS insert
+      if ( m_csFromNdnSim == nullptr ) {
+        m_cs.insert( *dataCopyWithoutPacket );
+      } else {
+        m_csFromNdnSim->Erase( dataCopyWithoutPacket );
+        m_csFromNdnSim->Add( dataCopyWithoutPacket );
+      }
     }
+
     // cout<< to_string(port)<<endl;
     // 有有效性要求的内容仅在边缘节点存储
     // 20190412修改：允许全节点缓存
