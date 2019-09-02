@@ -51,10 +51,10 @@ int main( int argc, char *argv[] ) {
 
   string strategy_name       = "SubPub";
   string zipf                = "1.2"; // 齐普夫参数
-  string cache_size          = "100";  // 缓存大小
-  string request_rate        = "10";  // 请求速率
-  string average_update_time = "20";  // 更新时间
-  string pit_store_size      = "100";  // PITCS表大小
+  string cache_size          = "1";  // 缓存大小
+  string request_rate        = "20";  // 请求速率
+  string average_update_time = "1";  // 更新时间
+  string pit_store_size      = "1000";  // PITCS表大小
   string update_factor =
       "1.0"; // 更新因子，0表示同一内容内容更新时间不变，1表示更新时间在内容到期后必变
   string experiment_time = "150";
@@ -91,13 +91,16 @@ int main( int argc, char *argv[] ) {
   // producersNodes.Add(Names::Find<Node>( "24" ) );
   // NodeContainer
   NodeContainer consumerNodes;
-  for ( int i = 0; i < 25; i++ ) {
-    consumerNodes.Add( Names::Find<Node>( std::to_string( i ) ) );
-  }
+  // for ( int i = 0; i < 25; i++ ) {
+  //   consumerNodes.Add( Names::Find<Node>( std::to_string( i ) ) );
+  // }
+  consumerNodes.Add( Names::Find<Node>( std::to_string( 2 ) ) );
+
+  consumerNodes.Add( Names::Find<Node>( std::to_string( 7 ) ) );
 
   // Consumer
   ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrotKan" );
-  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "5000" ) );
+  consumerHelper.SetAttribute( "NumberOfContents", StringValue( "20" ) );
   consumerHelper.SetAttribute( "q", StringValue( "0" ) );
   consumerHelper.SetAttribute( "s", StringValue( zipf ) );
   consumerHelper.SetAttribute( "Frequency", StringValue( request_rate ) );
