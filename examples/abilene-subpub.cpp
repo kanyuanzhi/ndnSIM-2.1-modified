@@ -87,6 +87,20 @@ int main( int argc, char *argv[] ) {
   p2p.Install( nodes.Get( 8 ), nodes.Get( 9 ) );
   p2p.Install( nodes.Get( 9 ), nodes.Get( 10 ) );
 
+  string strategy_name = "Timestamp";
+  string zipf          = "1.2"; // 齐普夫参数
+  string cache_size    = "100"; // 缓存大小
+  string request_rate  = "30";  // 请求速率P
+  string update_rate   = "5";   // 更新速率
+  string pit_cs_size   = "500"; // PITCS表大小
+
+  string rate_trace = "rate-trace-" + strategy_name + "-" + zipf + "-" +
+                      cache_size + "-" + request_rate + "-" + update_rate +
+                      "-" + pit_cs_size + ".txt";
+  string cs_trace = "cs-trace-" + strategy_name + "-" + zipf + "-" +
+                    cache_size + "-" + request_rate + "-" + update_rate + "-" +
+                    pit_cs_size + ".txt";
+
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   // ndnHelper.SetOldContentStore("ns3::ndn::cs::Lru", "MaxSize", "200");
@@ -132,7 +146,7 @@ int main( int argc, char *argv[] ) {
   ndnGlobalRoutingHelper.AddOrigins( "/prefix", producer );
   ndn::GlobalRoutingHelper::CalculateRoutes();
 
-  Simulator::Stop( Seconds( 1000.0 ) );
+  Simulator::Stop( Seconds( 10.0 ) );
 
   ndn::CsTracer::InstallAll( "cs-trace.txt", Seconds( 1 ) );
 
