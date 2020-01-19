@@ -180,10 +180,14 @@ ConsumerZipfMandelbrotKan::SendPacket()
   // add by kan 20190401
   interest->setPITList("");
   interest->setValidationFlag(1);
+  // end add  
+  
+  // add by kan 20191231
+  interest->setLocationRegistration(0);
   // end add
 
   // NS_LOG_INFO ("Requesting Interest: \n" << *interest);
-  NS_LOG_INFO("> Interest for " << seq << ", Total: " << m_seq << ", face: " << m_face->getId());
+  NS_LOG_INFO("> Interest for " << seq << ", Total: " << m_seq << ", face: " << m_face->getId() << ", InterestName: " << interest->getName());
   NS_LOG_DEBUG("Trying to add " << seq << " with " << Simulator::Now() << ". already "
                                 << m_seqTimeouts.size() << " items");
 

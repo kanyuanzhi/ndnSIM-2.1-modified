@@ -48,9 +48,9 @@ int main( int argc, char *argv[] ) {
   topologyReader.Read();
 
   string strategy_name       = "Normal";
-  string zipf                = "0.7"; // 齐普夫参数
+  string zipf                = "0.8"; // 齐普夫参数
   string cache_size          = "100";  // 缓存大小
-  string request_rate        = "10";  // 请求速率
+  string request_rate        = "20";  // 请求速率
   string average_update_time = "20";  // 更新时间
   string pit_store_size      = "80";  // PITCS表大小
   string update_factor =

@@ -337,6 +337,9 @@ private:
   // add by kan 20190409
   int ValidationPublishment;  // 区分请求返回类型的数据（0）和主动发布的数据（1）
 
+  // add by kan 20191231
+  int Eligibility; // 区分内容是否有资格被主动推送,0表示没有资格,1表示有资格
+
 public:
   const 
   int&
@@ -394,6 +397,22 @@ public:
     return *this;
   }
   // end add
+
+  // add by kan 20191231
+  const 
+  int&
+  getEligibility() const{
+    return Eligibility;
+  }
+
+  Data&
+  setEligibility(const int& i){
+    m_wire.reset();
+    m_fullName.clear();
+    Eligibility = i;
+    return *this;
+  }
+  //end add
 
 };
 

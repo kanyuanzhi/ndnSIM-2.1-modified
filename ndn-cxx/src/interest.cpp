@@ -235,6 +235,10 @@ Interest::wireEncode(EncodingImpl<TAG>& encoder) const
   // add by kan 20190330
   totalLength += prependNonNegativeIntegerBlock(encoder, tlv::ValidationFlag, getValidationFlag());
   // end add
+  
+  // add by kan 20191231
+  totalLength += prependNonNegativeIntegerBlock(encoder, tlv::LocationRegistration, getLocationRegistration());
+  // end add
 
   if (hasLink()) {
     if (hasSelectedDelegation()) {
@@ -375,6 +379,13 @@ Interest::wireDecode(const Block& wire)
   val = m_wire.find(tlv::ValidationFlag);
   if (val != m_wire.elements_end()) {
     ValidationFlag = readNonNegativeInteger(*val);
+  }
+  // end add
+
+  // add by kan 20191231
+  val = m_wire.find(tlv::LocationRegistration);
+  if (val != m_wire.elements_end()) {
+    LocationRegistration = readNonNegativeInteger(*val);
   }
   // end add
 }

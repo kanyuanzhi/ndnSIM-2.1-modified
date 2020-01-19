@@ -103,6 +103,11 @@ enum {
   ValidationPublishment = 38, // 用来区分请求返回类型的数据和主动发布的数据
   // end add
 
+  // add by kan 20191231
+  LocationRegistration = 39, // 兴趣包是否用于注册节点位置
+  Eligibility = 40, //数据包中该内容是否有资格被服务器主动推送
+  // end add
+
   AppPrivateBlock1 = 128,
   AppPrivateBlock2 = 32767
 };

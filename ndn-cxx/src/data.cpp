@@ -70,8 +70,10 @@ Data::wireEncode(EncodingImpl<TAG>& encoder, bool unsignedPortion/* = false*/) c
 
   // add by kan 20190409
    totalLength += prependNonNegativeIntegerBlock(encoder, tlv::ValidationPublishment, getValidationPublishment());
+  // end add
 
-
+  // add by kan 20191213
+   totalLength += prependNonNegativeIntegerBlock(encoder, tlv::Eligibility, getEligibility());
   // end add
 
   if (!unsignedPortion && !m_signature)
@@ -198,6 +200,13 @@ Data::wireDecode(const Block& wire)
   val = m_wire.find(tlv::ValidationPublishment);
   if (val != m_wire.elements_end()) {
     ValidationPublishment = readNonNegativeInteger(*val);
+  }
+  // end add
+
+  // add by kan 20191231
+  val = m_wire.find(tlv::Eligibility);
+  if (val != m_wire.elements_end()) {
+    Eligibility = readNonNegativeInteger(*val);
   }
   // end add
 }

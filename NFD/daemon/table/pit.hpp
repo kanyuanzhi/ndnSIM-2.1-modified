@@ -137,6 +137,12 @@ public: // enumeration
 private:
   NameTree& m_nameTree;
   size_t m_nItems;
+
+public:
+  NameTree& 
+  getNameTree(){
+    return m_nameTree;
+  }
 };
 
 inline size_t

@@ -38,6 +38,7 @@
 #include "table/dead-nonce-list.hpp"
 
 #include "ns3/ndnSIM/model/cs/ndn-content-store.hpp"
+using namespace std;
 
 namespace nfd {
 
@@ -236,7 +237,13 @@ private:
 
   // allow Strategy (base class) to enter pipelines
   friend class fw::Strategy;
+
+protected:
+  // add by kan 20191231
+  
 };
+
+
 
 inline const ForwarderCounters&
 Forwarder::getCounters() const

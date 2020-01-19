@@ -38,6 +38,7 @@ int main( int argc, char *argv[] ) {
                       StringValue( "0ms" ) );
   Config::SetDefault( "ns3::DropTailQueue::MaxPackets", StringValue( "200" ) );
 
+
   // Read optional command-line parameters (e.g., enable visualizer with ./waf
   // --run=<> --visualize
   CommandLine cmd;
@@ -63,16 +64,15 @@ int main( int argc, char *argv[] ) {
   p2p.Install( nodes.Get( 8 ), nodes.Get( 9 ) );
   p2p.Install( nodes.Get( 9 ), nodes.Get( 10 ) );
 
-  string strategy_name       = "SubPub";
+  string strategy_name       = "Freshness";
   string zipf                = "0.8"; // 齐普夫参数
-  string cache_size          = "130"; // 缓存大小
+  string cache_size          = "100";  // 缓存大小
   string request_rate        = "20";  // 请求速率
   string average_update_time = "30";  // 更新时间
-  string pit_store_size      = "126"; // PITCS表大小
+  string pit_store_size      = "8000";  // PITCS表大小
   string update_factor =
       "1.0"; // 更新因子，0表示同一内容内容更新时间不变，1表示更新时间在内容到期后必变
-  string experiment_time       = "120";
-  string top_popularity_number = "130";
+  string experiment_time = "120";
 
   string rate_trace = "rate-trace-" + strategy_name + "-" + zipf + "-" +
                       cache_size + "-" + request_rate + "-" +
@@ -86,10 +86,12 @@ int main( int argc, char *argv[] ) {
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   // ndnHelper.SetDefaultRoutes( true );
-  ndnHelper.setCsSize( 0 );
-  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Lru", "MaxSize", cache_size );
+  // ndnHelper.SetOldContentStore( "ns3::ndn::cs::Nocache" );
   // ndnHelper.setCsSize(100);
   // ndnHelper.setPolicy("nfd::cs::lru")
+  ndnHelper.SetOldContentStore( "ns3::ndn::cs::Freshness::Lru", "MaxSize",
+                                cache_size );
+
   ndnHelper.InstallAll();
 
   // Choosing forwarding strategy
@@ -105,28 +107,50 @@ int main( int argc, char *argv[] ) {
     consumerNodes.Add( nodes.Get( i ) );
   }
 
-  // Consumer
-  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrotKan" );
+  // Consumer0
+  ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerZipfMandelbrot" );
   consumerHelper.SetAttribute( "NumberOfContents", StringValue( "5000" ) );
   consumerHelper.SetAttribute( "q", StringValue( "0" ) );
   consumerHelper.SetAttribute( "s", StringValue( zipf ) );
+
+  // ndn::AppHelper consumerHelper( "ns3::ndn::ConsumerCbr" );
+  // consumerHelper.SetAttribute("MaxSeq",IntegerValue(1000));
   consumerHelper.SetAttribute( "Frequency", StringValue( request_rate ) );
+  // Consumer will request /prefix/0, /prefix/1, ...
+  // consumerHelper0.SetPrefix( "/prefix/c0" );
+  // consumerHelper0.Install( nodes.Get( 0 ) ); // first node
+
+  // consumerHelper0.SetPrefix( "/prefix/c5" );
+  // consumerHelper0.Install( nodes.Get( 5 ) );
+
+  // consumerHelper0.SetPrefix( "/prefix/c6" );
+  // consumerHelper0.Install( nodes.Get( 6 ) );
   consumerHelper.SetPrefix( "/prefix" );
   consumerHelper.Install( consumerNodes );
+  // Consumer1
+  // ndn::AppHelper consumerHelper1( "ns3::ndn::ConsumerZipfMandelbrot" );
+
+  // // Consumer will request /prefix/0, /prefix/1, ...
+  // consumerHelper1.SetPrefix( "/prefix/c1" );
+  // consumerHelper1.SetAttribute( "Frequency",
+  //                               StringValue( "100" ) ); // 10 interests a
+  //                               second
+  // consumerHelper0.SetAttribute( "NumberOfContents", StringValue( "1000" ) );
+  // consumerHelper1.Install( nodes.Get( 1 ) ); // first node
 
   // Producer
   ndn::AppHelper producerHelper( "ns3::ndn::ProducerKanV2" );
   // Producer will reply to all requests starting with /prefix
   producerHelper.SetPrefix( "/prefix" );
   producerHelper.SetAttribute( "PayloadSize", StringValue( "1024" ) );
+  producerHelper.SetAttribute(
+      "Freshness", TimeValue( Seconds( stof( average_update_time ) ) ) );
   producerHelper.SetAttribute( "AverageUpdateTime",
                                StringValue( average_update_time ) );
   producerHelper.SetAttribute( "MaxPITStoreSize",
                                StringValue( pit_store_size ) );
   producerHelper.SetAttribute( "ExprimentTime",
                                StringValue( experiment_time ) );
-  producerHelper.SetAttribute( "EligibleContentsNumber",
-                               StringValue( top_popularity_number ) );
   // producerHelper.Install( nodes.Get( 4 ) ); // last node
   producerHelper.Install( producer );
   ndnGlobalRoutingHelper.AddOrigins( "/prefix", producer );
@@ -137,7 +161,6 @@ int main( int argc, char *argv[] ) {
   Simulator::Stop( Seconds( stod( experiment_time ) ) );
 
   // ndn::L3RateTracer::InstallAll( rate_trace, Seconds( 1.0 ) );
-
   // ndn::CsTracer::InstallAll( cs_trace, Seconds( 1 ) );
 
   Simulator::Run();

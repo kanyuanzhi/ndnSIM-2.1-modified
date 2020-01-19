@@ -53,11 +53,12 @@ TypeId ProducerKanV2::GetTypeId( void ) {
                          StringValue( "/" ),
                          MakeNameAccessor( &ProducerKanV2::m_prefix ),
                          MakeNameChecker() )
-          .AddAttribute(
-              "Postfix", "Postfix that is added to the output data (e.g., "
+          .AddAttribute( "Postfix",
+                         "Postfix that is added to the output data (e.g., "
                          "for adding producer-uniqueness)",
-              StringValue( "/" ), MakeNameAccessor( &ProducerKanV2::m_postfix ),
-              MakeNameChecker() )
+                         StringValue( "/" ),
+                         MakeNameAccessor( &ProducerKanV2::m_postfix ),
+                         MakeNameChecker() )
           .AddAttribute(
               "PayloadSize", "Virtual payload size for Content packets",
               UintegerValue( 1024 ),
@@ -75,11 +76,12 @@ TypeId ProducerKanV2::GetTypeId( void ) {
                          UintegerValue( 0 ),
                          MakeUintegerAccessor( &ProducerKanV2::m_signature ),
                          MakeUintegerChecker<uint32_t>() )
-          .AddAttribute(
-              "KeyLocator", "Name to be used for key locator.  If root, then "
-                            "key locator is not used",
-              NameValue(), MakeNameAccessor( &ProducerKanV2::m_keyLocator ),
-              MakeNameChecker() )
+          .AddAttribute( "KeyLocator",
+                         "Name to be used for key locator.  If root, then "
+                         "key locator is not used",
+                         NameValue(),
+                         MakeNameAccessor( &ProducerKanV2::m_keyLocator ),
+                         MakeNameChecker() )
           .AddAttribute(
               "AverageUpdateTime", "内容平均更新时间", StringValue( "20" ),
               MakeUintegerAccessor( &ProducerKanV2::m_average_update_time ),
@@ -91,7 +93,12 @@ TypeId ProducerKanV2::GetTypeId( void ) {
           .AddAttribute(
               "ExprimentTime", "实验时长", StringValue( "150" ),
               MakeUintegerAccessor( &ProducerKanV2::m_expriment_time ),
-              MakeUintegerChecker<uint32_t>() );
+              MakeUintegerChecker<uint32_t>() )
+          .AddAttribute( "EligibleContentsNumber", "主动推送的内容数量",
+                         StringValue( "100" ),
+                         MakeUintegerAccessor(
+                             &ProducerKanV2::m_eligible_contents_number ),
+                         MakeUintegerChecker<uint32_t>() );
   return tid;
 }
 
@@ -116,9 +123,9 @@ void ProducerKanV2::OnInterest( shared_ptr<const Interest> interest ) {
   // cout<< m_face->getId()<<endl;
   // cout<< m_average_update_time <<endl;
   // cout<< m_max_pitstore_size <<endl;
+  int LocationRegistration = interest->getLocationRegistration();
 
   NS_LOG_FUNCTION( this << interest );
-
   if ( !m_active ) return;
 
   // add by kan 20190416
@@ -130,8 +137,75 @@ void ProducerKanV2::OnInterest( shared_ptr<const Interest> interest ) {
   double update_factor = 1.0;
 
   random_device r;
-  if ( interest->getValidationFlag() == 1 ) {
+  string        eligible_contents;
+
+  switch ( m_eligible_contents_number ) {
+  case 50:
+    eligible_contents = eligible_contents_50;
+    break;
+  case 60:
+    eligible_contents = eligible_contents_60;
+    break;
+  case 70:
+    eligible_contents = eligible_contents_70;
+    break;
+  case 80:
+    eligible_contents = eligible_contents_80;
+    break;
+  case 90:
+    eligible_contents = eligible_contents_90;
+    break;
+  case 100:
+    eligible_contents = eligible_contents_100;
+    break;
+  case 110:
+    eligible_contents = eligible_contents_110;
+    break;
+  case 120:
+    eligible_contents = eligible_contents_120;
+    break;
+  case 130:
+    eligible_contents = eligible_contents_130;
+    break;
+  case 140:
+    eligible_contents = eligible_contents_140;
+    break;
+  case 150:
+    eligible_contents = eligible_contents_150;
+    break;
+  case 200:
+    eligible_contents = eligible_contents_200;
+    break;
+  case 300:
+    eligible_contents = eligible_contents_300;
+    break;
+  case 400:
+    eligible_contents = eligible_contents_400;
+    break;
+  case 500:
+    eligible_contents = eligible_contents_500;
+    break;
+  case 1000:
+    eligible_contents = eligible_contents_1000;
+    break;
+
+  default:
+    break;
+  }
+
+  bool              eligibility;
+  string::size_type idx;
+  idx = eligible_contents.find( interest->getName().toUri() );
+  if ( idx == string::npos ) {
+    eligibility = false;
+  } else {
+    eligibility = true;
+  }
+
+  if ( interest->getValidationFlag() == 1 && eligibility &&
+       LocationRegistration == 0 ) {
     // 把具有有效性要求的内容存入PITListStore中
+
     int                           tnow_int = (int) tnow;
     default_random_engine         update_time_e( r() );
     uniform_int_distribution<int> update_time_u( 1, 2 * m_average_update_time -
@@ -227,6 +301,7 @@ void ProducerKanV2::OnInterest( shared_ptr<const Interest> interest ) {
 
       m_transmittedDatas( data, this, m_face );
       m_face->onReceiveData( *data );
+      NS_LOG_INFO( "expirationMessage" );
       // cout << "ROOT: " <<data->getName() << " : " << data->getPITListBack()
       // <<endl;
 
@@ -240,127 +315,142 @@ void ProducerKanV2::OnInterest( shared_ptr<const Interest> interest ) {
     PITListStore.push_front( pe );
     // std::cout << PITListStore.size() << std::endl;
   }
+  if ( LocationRegistration == 0 ) {
+    // std::cout << tnow << std::endl;
+    std::cout << PITListStore.size() << std::endl;
+    // std::cout << PITListStore.back().name << std::endl;
+    if ( (int) ( tnow * 10 ) % 10 != 0 ) {
+      published = false;
+    }
+    // std::cout << "false " << tnow << std::endl;
+    if ( (int) ( tnow * 10 ) % 10 == 0 && (int) tnow != 0 ) {
+      // 每秒检测一次PITList中是否有过期内容（即需要更新的内容），并重新分配内容的更新时间
+      // std::cout << published << std::endl;
+      if ( !published ) {
+        std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << tnow
+                  << std::endl;
+        // std::cout << PITListStore.size() << std::endl;
+        published = true;
+        for ( std::list<PITListEntry>::iterator it = PITListStore.begin();
+              it != PITListStore.end(); it++ ) {
+          if ( ( (int) tnow - it->last_update_time >= it->update_time ) ) {
+            // 当前时间-上次更新时间若大于等于更新时间，则需要重新发布一次，
+            // 并将上次更新时间置为当前时间。
+            it->last_update_time = (int) tnow;
 
-  // std::cout << tnow << std::endl;
-  // std::cout << PITListStore.size() << std::endl;
-  // std::cout << PITListStore.back().name << std::endl;
-  if ( (int) ( tnow * 10 ) % 10 != 0 ) {
-    published = false;
-  }
-  // std::cout << "false " << tnow << std::endl;
-  if ( (int) ( tnow * 10 ) % 10 == 0 && (int) tnow != 0 ) {
-    // 每秒检测一次PITList中是否有过期内容（即需要更新的内容），并重新分配内容的更新时间
-    // std::cout << published << std::endl;
-    if ( !published ) {
-      std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << tnow
-                << std::endl;
-      // std::cout << PITListStore.size() << std::endl;
-      published = true;
-      for ( std::list<PITListEntry>::iterator it = PITListStore.begin();
-            it != PITListStore.end(); it++ ) {
-        if ( ( (int) tnow - it->last_update_time >= it->update_time ) ) {
-          // 当前时间-上次更新时间若大于等于更新时间，则需要重新发布一次，
-          // 并将上次更新时间置为当前时间。
-          it->last_update_time = (int) tnow;
+            Name dataName( it->name );
+            auto data = make_shared<Data>();
+            data->setName( dataName );
+            data->setFreshnessPeriod(
+                ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
 
-          Name dataName( it->name );
-          auto data = make_shared<Data>();
-          data->setName( dataName );
-          data->setFreshnessPeriod(
-              ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
+            data->setContent(
+                make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
 
-          data->setContent(
-              make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
+            // 设置有有效性要求的数据包字段
+            data->setValidationDataFlag( 1 );
+            data->setExpiration( 0 );
+            data->setPITListBack( it->PITList );
+            data->setValidationPublishment( 1 );
+            data->setEligibility( 1 );
 
-          // 设置有有效性要求的数据包字段
-          data->setValidationDataFlag( 1 );
-          data->setExpiration( 0 );
-          data->setPITListBack( it->PITList );
-          data->setValidationPublishment( 1 );
+            Signature     signature;
+            SignatureInfo signatureInfo(
+                static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
 
-          Signature     signature;
-          SignatureInfo signatureInfo(
-              static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
+            if ( m_keyLocator.size() > 0 ) {
+              signatureInfo.setKeyLocator( m_keyLocator );
+            }
 
-          if ( m_keyLocator.size() > 0 ) {
-            signatureInfo.setKeyLocator( m_keyLocator );
-          }
+            signature.setInfo( signatureInfo );
+            signature.setValue(::ndn::nonNegativeIntegerBlock(
+                ::ndn::tlv::SignatureValue, m_signature ) );
 
-          signature.setInfo( signatureInfo );
-          signature.setValue(::ndn::nonNegativeIntegerBlock(
-              ::ndn::tlv::SignatureValue, m_signature ) );
+            data->setSignature( signature );
+            data->wireEncode();
 
-          data->setSignature( signature );
-          data->wireEncode();
+            m_transmittedDatas( data, this, m_face );
+            m_face->onReceiveData( *data );
+            NS_LOG_INFO( "publication data" );
 
-          m_transmittedDatas( data, this, m_face );
-          m_face->onReceiveData( *data );
-
-          default_random_engine             update_factor_e( r() );
-          uniform_real_distribution<double> update_factor_u( 0, 1 );
-          if ( update_factor >= update_factor_u( update_factor_e ) ) {
-            // cout<<"update!!!"<<endl;
-            // 随机因子越靠近1，内容的更新时间越有可能发生变化
-            default_random_engine         update_time_e2( r() );
-            uniform_int_distribution<int> update_time_u2(
-                1, 2 * m_average_update_time - 1 );
-            it->update_time = update_time_u2( update_time_e2 );
+            default_random_engine             update_factor_e( r() );
+            uniform_real_distribution<double> update_factor_u( 0, 1 );
+            if ( update_factor >= update_factor_u( update_factor_e ) ) {
+              // cout<<"update!!!"<<endl;
+              // 随机因子越靠近1，内容的更新时间越有可能发生变化
+              default_random_engine         update_time_e2( r() );
+              uniform_int_distribution<int> update_time_u2(
+                  1, 2 * m_average_update_time - 1 );
+              it->update_time = update_time_u2( update_time_e2 );
+            }
           }
         }
       }
     }
   }
   // end add
+  if ( LocationRegistration != 1 ) {
+    // 服务器不响应位置注册型的兴趣包
+    Name dataName( interest->getName() );
+    // dataName.append(m_postfix);
+    // dataName.appendVersion();
 
-  Name dataName( interest->getName() );
-  // dataName.append(m_postfix);
-  // dataName.appendVersion();
+    auto data = make_shared<Data>();
+    data->setName( dataName );
+    data->setFreshnessPeriod(
+        ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
 
-  auto data = make_shared<Data>();
-  data->setName( dataName );
-  data->setFreshnessPeriod(
-      ::ndn::time::milliseconds( m_freshness.GetMilliSeconds() ) );
+    data->setContent( make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
 
-  data->setContent( make_shared<::ndn::Buffer>( m_virtualPayloadSize ) );
+    Signature     signature;
+    SignatureInfo signatureInfo(
+        static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
 
-  Signature     signature;
-  SignatureInfo signatureInfo(
-      static_cast<::ndn::tlv::SignatureTypeValue>( 255 ) );
+    if ( m_keyLocator.size() > 0 ) {
+      signatureInfo.setKeyLocator( m_keyLocator );
+    }
 
-  if ( m_keyLocator.size() > 0 ) {
-    signatureInfo.setKeyLocator( m_keyLocator );
-  }
+    signature.setInfo( signatureInfo );
+    signature.setValue(::ndn::nonNegativeIntegerBlock(
+        ::ndn::tlv::SignatureValue, m_signature ) );
 
-  signature.setInfo( signatureInfo );
-  signature.setValue(::ndn::nonNegativeIntegerBlock(::ndn::tlv::SignatureValue,
-                                                    m_signature ) );
+    data->setSignature( signature );
 
-  data->setSignature( signature );
+    if ( interest->getValidationFlag() == 1 ) {
+      // 设置有有效性要求的数据包字段
+      data->setValidationDataFlag( 1 );
+      data->setExpiration( 0 );
+      data->setPITListBack( interest->getPITList() );
+      data->setValidationPublishment( 0 );
+      if ( eligibility )
+        data->setEligibility( 1 );
+      else
+        data->setEligibility( 0 );
+    } else {
+      data->setValidationDataFlag( 0 );
+      data->setExpiration( 0 );
+      data->setPITListBack( "" );
+      data->setValidationPublishment( 0 );
+      data->setEligibility( 0 );
+    }
+    // data->setValidationDataFlag( 0 );
+    // data->setExpiration( 0 );
+    // data->setPITListBack( "" );
 
-  if ( interest->getValidationFlag() == 1 ) {
-    // 设置有有效性要求的数据包字段
-    data->setValidationDataFlag( 1 );
-    data->setExpiration( 0 );
-    data->setPITListBack( interest->getPITList() );
-    data->setValidationPublishment( 0 );
+    NS_LOG_INFO( "node(" << GetNode()->GetId()
+                         << ") responding with Data: " << data->getName() );
+
+    // to create real wire encoding
+    data->wireEncode();
+
+    m_transmittedDatas( data, this, m_face );
+    m_face->onReceiveData( *data );
   } else {
-    data->setValidationDataFlag( 0 );
-    data->setExpiration( 0 );
-    data->setPITListBack( "" );
-    data->setValidationPublishment( 0 );
+    // cout<<" **NOT** responding!!!"<<endl;
+    NS_LOG_INFO( "node(" << GetNode()->GetId()
+                         << ") **NOT** responding with Data: "
+                         << interest->getName() );
   }
-  // data->setValidationDataFlag( 0 );
-  // data->setExpiration( 0 );
-  // data->setPITListBack( "" );
-
-  NS_LOG_INFO( "node(" << GetNode()->GetId()
-                       << ") responding with Data: " << data->getName() );
-
-  // to create real wire encoding
-  data->wireEncode();
-
-  m_transmittedDatas( data, this, m_face );
-  m_face->onReceiveData( *data );
 }
 
 } // namespace ndn

@@ -471,6 +471,24 @@ public:
   }
 // end add
 
+// add by kan 20191231
+public:
+  const
+  int&
+  getLocationRegistration() const
+  {
+    return LocationRegistration;
+  }
+
+  Interest&
+  setLocationRegistration(const int& i)
+  {
+    LocationRegistration = i;
+    m_wire.reset();
+    return *this;
+  }
+// end add
+
 private:
   Name m_name;
   Selectors m_selectors;
@@ -480,6 +498,7 @@ private:
   // add by kan
   std::string PITList;
   int ValidationFlag; //0表示普通的兴趣包，1表示有有效性要求的兴趣包
+  int LocationRegistration;
   // end add
 
   mutable Block m_link;
